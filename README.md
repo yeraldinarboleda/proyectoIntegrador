@@ -6,6 +6,7 @@ http://localhost:8081/api/ai/generate?text=
 cd my-app
 npm install
 npm start
+http://localhost:3000
 
 # ARQUITECTURA BACKEND
 src/main/java/com/projectname/
