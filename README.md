@@ -1,7 +1,7 @@
 # iniciar backend
 ./mvnw clean install
 ./mvnw spring-boot:run
-
+http://localhost:8081/api/ai/generate?text=
 # iniciar frontend
 cd my-app
 npm install
@@ -24,4 +24,3 @@ src/
 ├── hooks/                 # Hooks personalizados para la lógica compartida
 ├── context/               # API de contexto para gestión de estado
 └── utils/                 # Utilidades generales
-
