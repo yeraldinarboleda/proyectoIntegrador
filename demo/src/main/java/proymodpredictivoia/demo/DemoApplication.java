@@ -14,7 +14,7 @@ public class DemoApplication {
 
         // Establecer las variables de entorno en el sistema
         System.setProperty("API_GEMINI_KEY", dotenv.get("API_GEMINI_KEY"));
-
+		System.setProperty("GOOGLE_VISION_API_KEY", dotenv.get("GOOGLE_VISION_API_KEY"));
 		SpringApplication.run(DemoApplication.class, args);
 	}
 

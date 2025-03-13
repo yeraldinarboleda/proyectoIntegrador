@@ -13,8 +13,9 @@ public class WebConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
+                // Permitir diferentes endpoints en localhost:3000, incluyendo "/ia"
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000") // Cambia esto a la URL de tu frontend
+                        .allowedOrigins("http://localhost:3000") // Acepta solicitudes desde localhost:3000
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

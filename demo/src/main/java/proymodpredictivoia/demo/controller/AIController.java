@@ -2,10 +2,11 @@ package proymodpredictivoia.demo.controller;
 
 import proymodpredictivoia.demo.ai.AIService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -14,8 +15,11 @@ public class AIController {
     @Autowired
     private AIService aiService;
 
-    @GetMapping("/generate")
-    public String generateContent(@RequestParam String text) {
-        return aiService.generateContent(text);
+    @PostMapping("/generate")
+    public ResponseEntity<String> generateContent(@RequestParam("text") String text, @RequestParam(value = "files", required = false) List<MultipartFile> files) {
+        // Permitir que "files" sea opcional
+        String result = aiService.generateContent(text, files);
+        return ResponseEntity.ok(result);
     }
+    
 }
