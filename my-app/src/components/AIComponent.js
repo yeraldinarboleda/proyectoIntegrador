@@ -1,58 +1,34 @@
 import React, { useState } from 'react';
-import { generateContent } from '../services/AIService';
+import { generateContent } from '../services/AIService'; // Ajusta la ruta según la ubicación real
 
-const AIComponent = () => {
-    const [text, setText] = useState('');
-    const [result, setResult] = useState('');
-    const [files, setFiles] = useState([]);
+function AIComponent() {
+    const [inputText, setInputText] = useState('');
+    const [selectedFiles, setSelectedFiles] = useState(null);
+    const [aiResponse, setAiResponse] = useState('');
 
     const handleGenerate = async () => {
-        try {
-            const data = await generateContent(text, files);
-            if (data.candidates && data.candidates.length > 0) {
-                // Extraer el texto del primer candidato
-                const content = data.candidates[0].content.parts[0].text;
-                setResult(content);
-            } else {
-                setResult('No content generated.');
-            }
-        } catch (error) {
-            console.error('Error generating content:', error);
-            setResult('Error generating content.');
-        }
-    };
-
-    const handleKeyPress = (event) => {
-        if (event.key === 'Enter') {
-            handleGenerate();
-        }
+        // Llamar al servicio para obtener la respuesta de la IA
+        const response = await generateContent(inputText, selectedFiles);
+        setAiResponse(response); // Actualizar la respuesta en el frontend
     };
 
     const handleFileChange = (event) => {
-        setFiles(event.target.files);
+        setSelectedFiles(event.target.files);
     };
 
     return (
         <div>
-            <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Enter text"
+            <textarea 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Escribe tu texto aquí..."
             />
-            <input
-                type="file"
-                multiple
-                onChange={handleFileChange}
-            />
-            <button onClick={handleGenerate}>Generate</button>
-            <div>
-                <h3>Result:</h3>
-                <p>{result}</p>
-            </div>
+            <input type="file" multiple onChange={handleFileChange} />
+            <button onClick={handleGenerate}>Generar Respuesta</button>
+
+            {aiResponse && <div><h3>Respuesta de la IA:</h3><p>{aiResponse}</p></div>}
         </div>
     );
-};
+}
 
 export default AIComponent;

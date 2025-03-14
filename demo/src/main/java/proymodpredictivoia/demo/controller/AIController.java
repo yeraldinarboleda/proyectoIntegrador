@@ -12,14 +12,22 @@ import java.util.List;
 @RequestMapping("/api/ai")
 public class AIController {
 
-    @Autowired
-    private AIService aiService;
+    private final AIService aiService;
+
+    public AIController(AIService aiService) {
+        this.aiService = aiService;
+    }
 
     @PostMapping("/generate")
-    public ResponseEntity<String> generateContent(@RequestParam("text") String text, @RequestParam(value = "files", required = false) List<MultipartFile> files) {
-        // Permitir que "files" sea opcional
-        String result = aiService.generateContent(text, files);
-        return ResponseEntity.ok(result);
+    public ResponseEntity<String> generateAIResponse(
+            @RequestParam(value = "text", required = false) String text,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
+        
+        // Generar el contenido basado en texto e imágenes
+        String aiResponse = aiService.generateContent(text, files);
+        
+        // Devolver la respuesta al frontend
+        return ResponseEntity.ok(aiResponse);
     }
-    
 }
+
