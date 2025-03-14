@@ -1,28 +1,35 @@
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8081/api/ai/generate';
+
 export const generateContent = async (text, files) => {
     const formData = new FormData();
-    const prompt = `eres un cardiologo experto y tienes que realizar analizar un informe para diagnosticos, pdf, radiografias que te pasen ${text}`;
     
-    formData.append("text", prompt);
+    // Agregar texto al formulario
+    if (text) {
+        formData.append('text', text);
+    }
 
-    // Solo añade archivos si se han seleccionado
+    // Agregar archivos al formulario
     if (files && files.length > 0) {
-        Array.from(files).forEach((file) => {
-            formData.append("files", file);
+        files.forEach((file) => {
+            formData.append('files', file);
         });
     }
 
-    // Cambia la ruta base para apuntar a localhost:3000/ia
-    const response = await fetch('http://localhost:8081/api/ia/generate', {
-        method: 'POST',
-        body: formData,
-    });
+    try {
+        // Realizar la solicitud POST
+        const response = await axios.post(API_URL, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
 
-    if (!response.ok) {
-        console.error('Error en la solicitud:', response.statusText);
-        return { error: 'Failed to generate content' };
+        // Devolver la respuesta
+        return response.data;
+
+    } catch (error) {
+        console.error("Error en la solicitud:", error);
+        return null;
     }
-
-    const data = await response.json();
-    console.log(data);
-    return data;
 };
