@@ -74,7 +74,22 @@
             <artifactId>pdfbox</artifactId>
             <version>2.0.27</version>
         </dependency>
-
+        <!-- Librería para Google Vision API -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-vision</artifactId>
+            <version>3.3.0</version> <!-- Revisa la última versión disponible -->
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        <!-- Librería para autenticación con Google APIs -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>1.15.0</version>
+        </dependency>
     </dependencies>
 
     <repositories>
@@ -85,11 +100,6 @@
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
-        </repository>
-        <repository>
-            <id>itext</id>
-            <name>iText Repository</name>
-            <url>https://repo.itextpdf.com/releases</url>
         </repository>
     </repositories>
 

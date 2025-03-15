@@ -10,9 +10,12 @@ export const generateContent = async (text, files) => {
         formData.append('text', text);
     }
 
-    // Agregar archivos al formulario
-    if (files && files.length > 0) {
-        files.forEach((file) => {
+    // Verificar y agregar archivos al formulario
+    if (files) {
+        // Si files no es un array, lo convertimos a uno.
+        const filesArray = Array.isArray(files) ? files : [files];
+
+        filesArray.forEach((file) => {
             formData.append('files', file);
         });
     }
