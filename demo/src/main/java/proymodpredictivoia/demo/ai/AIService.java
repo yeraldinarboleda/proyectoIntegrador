@@ -2,11 +2,7 @@ package proymodpredictivoia.demo.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.vision.v1.AnnotateImageRequest;
-import com.google.cloud.vision.v1.AnnotateImageResponse;
-import com.google.cloud.vision.v1.Feature;
-import com.google.cloud.vision.v1.Image;
-import com.google.cloud.vision.v1.ImageAnnotatorClient;
+import com.google.cloud.vision.v1.*;
 import com.google.protobuf.ByteString;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,32 +11,37 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 
 @Service
 public class AIService {
 
-    @Value("${API_GEMINI_KEY}") // Inyecta la API Key desde .env
+    @Value("${API_GEMINI_KEY}")
     private String geminiApiKey;
 
-
-    // Extraer texto de la imagen usando Google Vision (sin cambios)
     public String extractTextFromImage(MultipartFile imageFile) throws IOException {
         if (imageFile == null || imageFile.isEmpty()) {
-            return null; // No hay imagen proporcionada
+            return null;
         }
 
         ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
-
-        // Crear la solicitud para Google Vision API
         Image img = Image.newBuilder().setContent(imgBytes).build();
         Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
-        AnnotateImageRequest request =
-                AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
 
-        // Crear cliente Vision API
+        try {
+            System.out.println("Intentando crear ImageAnnotatorClient...");
+            ImageAnnotatorClient vision = ImageAnnotatorClient.create();
+            System.out.println("ImageAnnotatorClient creado exitosamente.");
+            //...
+        } catch (IOException e) {
+            System.err.println("Error al crear ImageAnnotatorClient: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al crear ImageAnnotatorClient: " + e.getMessage());
+        }
+
         try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
             List<AnnotateImageRequest> requests = Collections.singletonList(request);
             AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
@@ -53,18 +54,49 @@ public class AIService {
         }
     }
 
-    // Llamar a Gemini para hacer el análisis del texto extraído o el texto directo
-
-    public String analyzeWithGemini(String extractedText, String inputText) throws IOException {
-        WebClient webClient = WebClient.create();
-
-        if ((extractedText == null || extractedText.isEmpty()) && (inputText == null || inputText.isEmpty())) {
-            throw new IllegalArgumentException("Se requiere texto proporcionado o texto extraído de la imagen.");
+    public String describeImage(MultipartFile imageFile) throws IOException {
+        if (imageFile == null || imageFile.isEmpty()) {
+            return null;
         }
 
-        String prompt = extractedText != null ?
-                "Eres un cardiologo experto el cual te encargas de analizar el siguiente texto extraido de una imagen y dar una respuesta basada en el contenido de la imagen, asi como un diagnotico final: " + extractedText :
-                "Eres un cardiologo experto el cual puede dar una respuesta basada en una pregunta o texto proporcionado, asi como un diagnotico final: " + inputText;
+        ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
+        Image img = Image.newBuilder().setContent(imgBytes).build();
+        Feature feat = Feature.newBuilder().setType(Feature.Type.LABEL_DETECTION).setMaxResults(10).build(); // Obtener hasta 10 etiquetas
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+
+        try {
+            System.out.println("Intentando crear ImageAnnotatorClient...");
+            ImageAnnotatorClient vision = ImageAnnotatorClient.create();
+            System.out.println("ImageAnnotatorClient creado exitosamente.");
+            //...
+        } catch (IOException e) {
+            System.err.println("Error al crear ImageAnnotatorClient: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al crear ImageAnnotatorClient: " + e.getMessage());
+        }
+
+        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+            List<AnnotateImageRequest> requests = Collections.singletonList(request);
+            AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
+
+            if (response.hasError()) {
+                throw new RuntimeException("Error en la API de Vision: " + response.getError().getMessage());
+            }
+
+            StringBuilder description = new StringBuilder();
+            for (EntityAnnotation label : response.getLabelAnnotationsList()) {
+                description.append(label.getDescription()).append(", ");
+            }
+            return description.length() > 0 ? description.substring(0, description.length() - 2) : "No se encontraron etiquetas.";
+        }
+    }
+
+    public String analyzeWithGemini(String extractedText, String imageDescription) throws IOException {
+        WebClient webClient = WebClient.create();
+
+        String prompt = "Eres un cardiologo experto el cual te encargas de analizar el siguiente texto extraido de una imagen y su descripcion, y dar una respuesta basada en el contenido de la imagen, asi como un diagnotico final, tambien puedes responder preguntas sin necesidad de una imagen, solo con el texto, y dar un diagnostico final, y dar una respuesta basada en el contenido del texto.: " +
+                "Texto extraido: " + (extractedText != null ? extractedText : "No se encontró texto.") +
+                " Descripcion de la imagen: " + (imageDescription != null ? imageDescription : "No se encontró descripción.");
 
         String escapedPrompt = prompt.replace("\"", "\\\"");
         String requestBody = String.format("{\"contents\": [{\"parts\": [{\"text\": \"%s\"}]}]}", escapedPrompt);
@@ -112,56 +144,4 @@ public class AIService {
             throw new RuntimeException("Error inesperado en la solicitud a Gemini: " + e.getMessage(), e);
         }
     }
-
-
-
-    // **Helper method to extract text content from Gemini response (basic string manipulation)**
-    private String extractTextContent(String jsonResponse) {
-        // **IMPORTANT:** This is a VERY basic and fragile JSON parsing.
-        // For production, use a proper JSON library like Jackson or Gson.
-        try {
-            int startMarkerIndex = jsonResponse.indexOf("\"text\": \"");
-            if (startMarkerIndex != -1) {
-                int textStartIndex = startMarkerIndex + 9; // Length of "\"text\": \""
-                int textEndIndex = jsonResponse.indexOf("\"", textStartIndex);
-                if (textEndIndex != -1) {
-                    return jsonResponse.substring(textStartIndex, textEndIndex);
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error during basic text extraction: " + e.getMessage());
-        }
-        return null; // Text content not found or error during extraction
-    }
-
-    // Method to list available Gemini models
-    public String listGeminiModels() {
-        WebClient webClient = WebClient.create();
-
-        try {
-            String response = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .scheme("https")
-                            .host("generativelanguage.googleapis.com")
-                            .path("/v1beta/models/**models/gemini-1.5-pro-latest**:generateContent") // Endpoint for listing models
-                            .queryParam("key", geminiApiKey)
-                            .build())
-                    .header("Content-Type", "application/json")
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            System.out.println("List Models Response: " + response); // Print the raw response
-            return response; // Return the raw JSON response for now
-
-        } catch (WebClientResponseException e) {
-            System.err.println("Error listing Gemini models: " + e.getMessage());
-            System.err.println("List Models Response body: " + e.getResponseBodyAsString());
-            return "Error listing models: " + e.getResponseBodyAsString();
-        } catch (Exception e) {
-            System.err.println("Unexpected error listing Gemini models: " + e.getMessage());
-            return "Unexpected error listing models: " + e.getMessage();
-        }
-    }
-
 }
