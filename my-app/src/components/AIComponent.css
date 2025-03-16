@@ -1,0 +1,199 @@
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px; /* Ajusta según el espacio que necesites */
+}
+
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: #4caf50;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+.text-input-container {
+    display: flex;
+    flex-direction: column; /* Asegura que el label esté encima del textarea */
+    align-items: center; /* Centra los elementos horizontalmente */
+    width: 100%; /* Ocupa todo el ancho disponible */
+    margin-top: 20px; /* Espaciado superior para separar del contenido anterior */
+}
+
+.text-input {
+    width: 50%; /* Ocupa todo el ancho disponible */
+    height: 150px; /* Altura ajustable */
+    margin-top: 10px; /* Espaciado entre el label y el textarea */
+    padding: 10px; /* Espaciado interno */
+    border: 1px solid #ccc; /* Borde gris claro */
+    border-radius: 8px; /* Bordes redondeados */
+    resize: vertical; /* Permitir redimensionar verticalmente */
+    font-size: 16px; /* Tamaño de fuente */
+    font-family: Arial, sans-serif; /* Fuente consistente */
+    box-sizing: border-box; /* Incluir padding y border en el tamaño total */
+    overflow-y: auto; /* Mostrar scroll si el texto excede la altura */
+}
+
+/* Contenedor del archivo seleccionado y el botón de eliminación */
+.selected-files-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.selected-file {
+    display: flex;
+    align-items: center;
+    margin-right: 10px; /* Espacio entre archivos seleccionados */
+}
+
+.file-name {
+    font-size: 14px;
+    margin-right: 8px; /* Espaciado entre nombre de archivo y la "X" */
+}
+
+.remove-file-button {
+    color: red;
+    font-size: 16px;
+    font-weight: bold;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.remove-file-button:hover {
+    color: darkred;
+}
+
+/* Botón de subir archivos */
+.file-input {
+    display: inline-block;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    color: white;
+    background-color: #007bff; /* Azul */
+    border: none;
+    border-radius: 8px; /* Bordes redondeados */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+.file-input:hover {
+    background-color: #0056b3; /* Azul más oscuro al pasar el mouse */
+}
+
+/* Botón de quitar archivos */
+.remove-file-button {
+    display: inline-block;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    color: white;
+    background-color: #dc3545; /* Rojo */
+    border: none;
+    border-radius: 8px; /* Bordes redondeados */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+.remove-file-button:hover {
+    background-color: #c82333; /* Rojo más oscuro al pasar el mouse */
+}
+
+
+/* Contenedor de archivos seleccionados */
+.selected-files {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Espaciado entre los archivos */
+}
+
+/* Estilo para cada archivo seleccionado */
+.file-item {
+    display: flex;
+    align-items: center; /* Centra verticalmente el contenido */
+    justify-content: center; /* Centra horizontalmente el contenido */
+    background-color: #f8f9fa; /* Fondo claro */
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    text-align: center; /* Asegura que el texto esté centrado */
+}
+
+/* Nombre del archivo */
+.file-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Muestra "..." si el nombre es muy largo */
+    display: flex;
+    justify-content: center; /* Centra horizontalmente el texto */
+    align-items: center; /* Centra verticalmente el texto */
+}
+
+/* Botón para eliminar archivos */
+.remove-file-button {
+    background-color: transparent;
+    color: #dc3545; /* Rojo */
+    border: none;
+    border-radius: 50%; /* Botón redondo */
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center; /* Centra el contenido del botón verticalmente */
+    justify-content: center; /* Centra el contenido del botón horizontalmente */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    padding: 0; /* Elimina el espacio interno */
+    margin-left: 10px; /* Espaciado entre el nombre del archivo y el botón */
+}
+
+.remove-file-button:hover {
+    background-color: #f8d7da; /* Fondo rojo claro al pasar el mouse */
+    color: #c82333; /* Rojo más oscuro */
+}
+
+
+/* Estilo para el botón de generar respuesta */
+button {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-family: Arial, sans-serif;
+    color: white;
+    background-color: #28a745; /* Verde */
+    border: none;
+    border-radius: 8px; /* Bordes redondeados */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #218838; /* Verde más oscuro al pasar el mouse */
+}
+
+/* Deshabilitar el botón mientras carga */
+button:disabled {
+    background-color: #6c757d; /* Gris */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
