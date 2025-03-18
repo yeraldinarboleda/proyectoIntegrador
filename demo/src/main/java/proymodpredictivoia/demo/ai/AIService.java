@@ -94,9 +94,12 @@ public class AIService {
     public String analyzeWithGemini(String extractedText, String imageDescription) throws IOException {
         WebClient webClient = WebClient.create();
 
-        String prompt = "Eres un cardiologo experto el cual te encargas de analizar el siguiente texto extraido de una imagen y su descripcion, y dar una respuesta basada en el contenido de la imagen, asi como un diagnotico final, tambien puedes responder preguntas sin necesidad de una imagen, solo con el texto, y dar un diagnostico final, y dar una respuesta basada en el contenido del texto.: " +
-                "Texto extraido: " + (extractedText != null ? extractedText : "No se encontró texto.") +
-                " Descripcion de la imagen: " + (imageDescription != null ? imageDescription : "No se encontró descripción.");
+        String prompt = "Eres un cardiologo experto el cual te encargas de analizar el siguiente texto extraido de una imagen y" 
+        +"su descripcion, y dar una respuesta basada en el contenido de la imagen, asi como dar un diagnotico final,"+ 
+        "tambien puedes responder preguntas sin necesidad de una imagen, solo con el texto, y dar un diagnostico final,"+ 
+        "y dar una respuesta basada en el contenido del texto, Ademas tienes que decir que pasaria si no sigue las recomendaciones y que pasaria si sigue las recomendaciones.: " +
+        "Texto extraido: " + (extractedText != null ? extractedText : "No se encontró texto.") +
+        " Descripcion de la imagen: " + (imageDescription != null ? imageDescription : "No se encontró descripción.");
 
         String escapedPrompt = prompt.replace("\"", "\\\"");
         String requestBody = String.format("{\"contents\": [{\"parts\": [{\"text\": \"%s\"}]}]}", escapedPrompt);
