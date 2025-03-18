@@ -15,15 +15,29 @@ const RiskFactorsForm = () => {
     cardiovascularDiseases: false,
   });
 
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.physicalActivity) newErrors.physicalActivity = 'Este campo es obligatorio';
+    if (!formData.diet) newErrors.diet = 'Este campo es obligatorio';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Factores de riesgo:', formData);
-    alert('Factores de riesgo guardados correctamente');
+    if (validateForm()) {
+      console.log('Factores de riesgo:', formData);
+      alert('Factores de riesgo guardados correctamente');
+    } else {
+      alert('Por favor, complete todos los campos obligatorios');
+    }
   };
 
   return (
@@ -50,25 +64,27 @@ const RiskFactorsForm = () => {
             <label>{field.label}</label>
           </div>
         ))}
-        
+
         <div className="input-group">
           <label>Nivel de actividad física:</label>
-          <select name="physicalActivity" value={formData.physicalActivity} onChange={handleChange}>
+          <select name="physicalActivity" value={formData.physicalActivity} onChange={handleChange} required>
             <option value="">Seleccione</option>
             <option value="low">Baja</option>
             <option value="moderate">Moderada</option>
             <option value="high">Alta</option>
           </select>
+          {errors.physicalActivity && <p className="error-message">{errors.physicalActivity}</p>}
         </div>
 
         <div className="input-group">
           <label>Dieta:</label>
-          <select name="diet" value={formData.diet} onChange={handleChange}>
+          <select name="diet" value={formData.diet} onChange={handleChange} required>
             <option value="">Seleccione</option>
             <option value="healthy">Saludable</option>
             <option value="average">Promedio</option>
             <option value="unhealthy">No saludable</option>
           </select>
+          {errors.diet && <p className="error-message">{errors.diet}</p>}
         </div>
 
         <button type="submit" className="save-button">Guardar</button>
