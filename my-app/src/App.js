@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import AIComponent from './components/AIComponent';
-import DashboardComponent from './components/DashboardComponent'; // Importa el nuevo componente
+import DashboardComponent from './containers/DashboardComponent'; // Importa el nuevo componente
 import './App.css';
 import LoginComponent from './components/LoginComponent';
 
@@ -25,17 +25,6 @@ function App() {
             <Route path="/dashboard" element={<DashboardComponent />} />
           </Routes>
           {/* <img src={logo} className="App-logo" alt="logo" /> */}
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
         </header>
       </div>
     </Router>
