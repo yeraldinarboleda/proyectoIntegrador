@@ -12,16 +12,33 @@ const PersonalDataForm = () => {
     address: '',
     contact: '',
     gmail: '',
-    });
+  });
+
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      if (!formData[key] && key !== 'documentType' && key !== 'gender') {
+        newErrors[key] = 'Este campo es obligatorio';
+      }
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Datos personales:', formData);
-    alert('Datos guardados correctamente');
+    if (validateForm()) {
+      console.log('Datos personales:', formData);
+      alert('Datos guardados correctamente');
+    } else {
+      alert('Por favor, complete todos los campos obligatorios');
+    }
   };
 
   return (
@@ -37,24 +54,30 @@ const PersonalDataForm = () => {
           { label: 'Nombres', name: 'firstName', type: 'text' },
           { label: 'Apellidos', name: 'lastName', type: 'text' },
           { label: 'Fecha de Nacimiento', name: 'birthDate', type: 'date' },
-          { label: 'Genero', name: 'gender', type: 'select', options: ['Masculino', 'Femenino',"Otro"] },
+          { label: 'Género', name: 'gender', type: 'select', options: ['Masculino', 'Femenino', 'Otro'] },
           { label: 'Dirección', name: 'address', type: 'text' },
           { label: 'Contacto (Teléfono)', name: 'contact', type: 'text' },
           { label: 'Contacto (Correo)', name: 'gmail', type: 'text' },
-
         ].map((field) => (
           <div className="input-group" key={field.name}>
             <label>{field.label}:</label>
             {field.type === 'select' ? (
-              <select name={field.name} value={formData[field.name]} onChange={handleChange}>
+              <select name={field.name} value={formData[field.name]} onChange={handleChange} required>
                 <option value="">Seleccione</option>
                 {field.options.map((option) => (
                   <option key={option} value={option.toLowerCase()}>{option}</option>
                 ))}
               </select>
             ) : (
-              <input type={field.type} name={field.name} value={formData[field.name]} onChange={handleChange} />
+              <input 
+                type={field.type} 
+                name={field.name} 
+                value={formData[field.name]} 
+                onChange={handleChange} 
+                required
+              />
             )}
+            {errors[field.name] && <p className="error-message">{errors[field.name]}</p>}
           </div>
         ))}
 
