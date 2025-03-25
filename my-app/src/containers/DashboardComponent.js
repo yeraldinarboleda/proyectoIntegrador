@@ -3,8 +3,8 @@ import PersonalDataForm from '../components/PersonalDataForm';
 import MedicalDataForm from '../components/MedicalDataForm';
 import RiskFactorsForm from '../components/RiskFactorsForm';
 import LabResultsForm from '../components/LabResultsForm';
+import CardioResultsForm from '../components/CardioResultsForm';
 import './DashboardComponent.css';
-
 
 const DashboardComponent = () => {
   const [activeSection, setActiveSection] = useState('personal');
@@ -17,6 +17,7 @@ const DashboardComponent = () => {
         <button onClick={() => setActiveSection('medical')}>Datos Médicos</button>
         <button onClick={() => setActiveSection('risk')}>Factores de Riesgo</button>
         <button onClick={() => setActiveSection('lab')}>Resultados de Laboratorio</button>
+        <button onClick={() => setActiveSection('cardio')}>Resultados Cardiológicos</button>
       </nav>
 
       <div>
@@ -24,6 +25,7 @@ const DashboardComponent = () => {
         {activeSection === 'medical' && <MedicalDataForm />}
         {activeSection === 'risk' && <RiskFactorsForm />}
         {activeSection === 'lab' && <LabResultsForm />}
+        {activeSection === 'cardio' && <CardioResultsForm />}
       </div>
     </div>
   );
