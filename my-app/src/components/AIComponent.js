@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateContent } from '../services/AIService';
-import './AIComponent.css';
+import './styles/AIComponent.css';
 
 function AIComponent() {
     const [inputText, setInputText] = useState('');

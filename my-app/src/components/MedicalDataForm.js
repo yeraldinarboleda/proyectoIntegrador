@@ -12,6 +12,8 @@ const MedicalDataForm = () => {
     bmi: '',
   });
 
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
     if (formData.weight && formData.height) {
       const heightInMeters = formData.height / 100;
@@ -24,10 +26,25 @@ const MedicalDataForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      if (!formData[key] && key !== 'bmi') {
+        newErrors[key] = 'Este campo es obligatorio';
+      }
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Datos médicos:', formData);
-    alert('Datos médicos guardados correctamente');
+    if (validateForm()) {
+      console.log('Datos médicos:', formData);
+      alert('Datos médicos guardados correctamente');
+    } else {
+      alert('Por favor, complete todos los campos obligatorios');
+    }
   };
 
   return (
@@ -50,10 +67,12 @@ const MedicalDataForm = () => {
               value={formData[field.name]}
               onChange={handleChange}
               step={field.step || '1'}
+              required
             />
+            {errors[field.name] && <p className="error-message">{errors[field.name]}</p>}
           </div>
         ))}
-        
+
         <div className="input-group">
           <label>Índice de Masa Corporal (IMC):</label>
           <input type="text" name="bmi" value={formData.bmi} readOnly />
