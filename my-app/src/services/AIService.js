@@ -16,6 +16,7 @@ export const generateContent = async (text, files) => {
         const filesArray = Array.from(files);
 
         filesArray.forEach((file) => {
+            console.log("Archivo enviado:", file.name, "Tipo:", file.type); // Verifica el tipo MIME
             formData.append('file', file); // Usar 'file' en lugar de 'files'
         });
     }
