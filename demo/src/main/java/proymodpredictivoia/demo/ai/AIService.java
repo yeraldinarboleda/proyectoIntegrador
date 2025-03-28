@@ -21,38 +21,78 @@ public class AIService {
     @Value("${API_GEMINI_KEY}")
     private String geminiApiKey;
 
-    public String extractTextFromImage(MultipartFile imageFile) throws IOException {
-        if (imageFile == null || imageFile.isEmpty()) {
+    public String extractTextFromImage(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
             return null;
         }
 
-        ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
-        Image img = Image.newBuilder().setContent(imgBytes).build();
-        Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
-        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
-
-        try {
-            System.out.println("Intentando crear ImageAnnotatorClient...");
-            ImageAnnotatorClient vision = ImageAnnotatorClient.create();
-            System.out.println("ImageAnnotatorClient creado exitosamente.");
-            //...
-        } catch (IOException e) {
-            System.err.println("Error al crear ImageAnnotatorClient: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Error al crear ImageAnnotatorClient: " + e.getMessage());
-        }
-
-        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
-            List<AnnotateImageRequest> requests = Collections.singletonList(request);
-            AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
-
-            if (response.hasError()) {
-                throw new RuntimeException("Error en la API de Vision: " + response.getError().getMessage());
-            }
-
-            return response.getTextAnnotationsList().isEmpty() ? null : response.getTextAnnotationsList().get(0).getDescription();
+        System.out.println("Nombre del archivo: " + file.getOriginalFilename());
+        System.out.println("Tipo de archivo: " + file.getContentType());
+        System.out.println("Tamaño del archivo: " + file.getSize());
+        
+        String contentType = file.getContentType();
+        if ("application/pdf".equals(contentType)) {
+            return extractTextFromPdf(file);
+        } else if (contentType != null && contentType.startsWith("image/")) {
+            return extractTextFromImageFile(file);
+        } else {
+            throw new IllegalArgumentException("Tipo de archivo no soportado: " + contentType);
         }
     }
+
+private String extractTextFromImageFile(MultipartFile imageFile) throws IOException {
+    ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
+    Image img = Image.newBuilder().setContent(imgBytes).build();
+    Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
+    AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+
+    try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+        List<AnnotateImageRequest> requests = Collections.singletonList(request);
+        AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
+
+        if (response.hasError()) {
+            throw new RuntimeException("Error en la API de Vision: " + response.getError().getMessage());
+        }
+
+        return response.getTextAnnotationsList().isEmpty() ? null : response.getTextAnnotationsList().get(0).getDescription();
+    }
+}
+
+private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
+    ByteString pdfBytes = ByteString.readFrom(pdfFile.getInputStream());
+    InputConfig inputConfig = InputConfig.newBuilder()
+            .setMimeType("application/pdf")
+            .setContent(pdfBytes)
+            .build();
+
+    Feature feat = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
+    GcsSource gcsSource = GcsSource.newBuilder().setUri("gs://your-bucket-name/your-pdf-file.pdf").build();
+
+    try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+        AnnotateFileRequest request = AnnotateFileRequest.newBuilder()
+                .setInputConfig(inputConfig)
+                .addFeatures(feat)
+                .build();
+
+        List<AnnotateFileRequest> requests = Collections.singletonList(request);
+        BatchAnnotateFilesResponse response = vision.batchAnnotateFiles(requests);
+        AnnotateFileResponse fileResponse = response.getResponses(0);
+
+        if (fileResponse.hasError()) {
+            throw new RuntimeException("Error en la API de Vision: " + fileResponse.getError().getMessage());
+        }
+
+        StringBuilder extractedText = new StringBuilder();
+        for (AnnotateImageResponse imageResponse : fileResponse.getResponsesList()) {
+            if (imageResponse.hasError()) {
+                throw new RuntimeException("Error en la API de Vision: " + imageResponse.getError().getMessage());
+            }
+            extractedText.append(imageResponse.getFullTextAnnotation().getText());
+        }
+
+        return extractedText.toString();
+    }
+}
 
     public String describeImage(MultipartFile imageFile) throws IOException {
         if (imageFile == null || imageFile.isEmpty()) {
