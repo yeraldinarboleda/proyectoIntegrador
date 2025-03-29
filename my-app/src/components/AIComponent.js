@@ -39,7 +39,7 @@ function AIComponent() {
         setAiResponse('');
         try {
             const response = await generateContent(inputText, selectedFiles);
-            console.log('Respuesta completa del backend:', response);
+            //console.log('Respuesta completa del backend:', response);
             const formattedText = formatResponse(response);
             setAiResponse(formattedText);
         } catch (error) {
