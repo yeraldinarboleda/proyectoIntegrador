@@ -23,22 +23,24 @@ public class AIService {
 
     public String extractTextFromImage(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            return null;
+            return "Archivo vacío o nulo.";
         }
-
-        System.out.println("Nombre del archivo: " + file.getOriginalFilename());
-        System.out.println("Tipo de archivo: " + file.getContentType());
-        System.out.println("Tamaño del archivo: " + file.getSize());
+    
+        System.out.println("Procesando archivo: " + file.getOriginalFilename());
         
         String contentType = file.getContentType();
         if ("application/pdf".equals(contentType)) {
-            return extractTextFromPdf(file);
+            String extractedText = extractTextFromPdf(file);
+            return (extractedText != null && !extractedText.isEmpty()) ? extractedText : "No se pudo extraer texto del PDF.";
         } else if (contentType != null && contentType.startsWith("image/")) {
-            return extractTextFromImageFile(file);
+            String extractedText = extractTextFromImageFile(file);
+            return (extractedText != null && !extractedText.isEmpty()) ? extractedText : "No se pudo extraer texto de la imagen.";
         } else {
-            throw new IllegalArgumentException("Tipo de archivo no soportado: " + contentType);
+            return "Tipo de archivo no soportado: " + contentType;
         }
     }
+    
+    
 
 private String extractTextFromImageFile(MultipartFile imageFile) throws IOException {
     ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
