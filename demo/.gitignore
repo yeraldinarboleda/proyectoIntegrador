@@ -34,3 +34,6 @@ build/
 
 #variables de entorno
 .env
+
+
+application.properties
