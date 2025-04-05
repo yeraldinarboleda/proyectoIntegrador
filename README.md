@@ -1,5 +1,6 @@
 # iniciar backend  
 ./mvnw clean install  
+docker compose up -d  
 ./mvnw spring-boot:run  
 http://localhost:8081/api/ai/generate?text=  
 # iniciar frontend  
