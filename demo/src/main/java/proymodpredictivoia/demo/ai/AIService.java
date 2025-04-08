@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +34,12 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Font.FontFamily;
+import com.itextpdf.text.Chunk;
+//import com.opencsv.CSVWriter;
 
 @Service
 public class AIService {
@@ -152,36 +159,78 @@ private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
         }
     }
 
+    
     public void generatePDF(String content, String outputPath) throws Exception {
-        // Obtén el directorio de salida a partir de la ruta completa
+        // Crea el directorio de salida si no existe
         File outputFile = new File(outputPath);
         File outputDir = outputFile.getParentFile();
         if (!outputDir.exists()) {
-            outputDir.mkdirs(); // Crea el directorio (y subdirectorios) si no existe
+            outputDir.mkdirs();
         }
         
         Document document = new Document();
         PdfWriter.getInstance(document, new FileOutputStream(outputPath));
         document.open();
-        // Reemplazar etiquetas HTML con saltos de línea reales
+        
+        // Reemplaza los <br> por saltos de línea
         String formattedContent = content.replace("<br>", "\n").replace("<br><br>", "\n\n");
-
-        document.add(new Paragraph(formattedContent));
-
+        
+        // Define dos fuentes: una normal y otra en negrita
+        Font normalFont = new Font(FontFamily.HELVETICA, 12, Font.NORMAL);
+        Font boldFont = new Font(FontFamily.HELVETICA, 12, Font.BOLD);
+        
+        // Utiliza expresión regular para encontrar segmentos en negrita
+        // El patrón busca "cualquier texto" seguido de <b> "texto en negrita" </b>
+        Pattern pattern = Pattern.compile("(?s)(.*?)<b>(.*?)</b>");
+        Matcher matcher = pattern.matcher(formattedContent);
+        
+        Paragraph paragraph = new Paragraph();
+        int lastEnd = 0;
+        while(matcher.find()){
+            // Agrega el texto anterior a la etiqueta <b> usando la fuente normal
+            String textBefore = matcher.group(1);
+            if (!textBefore.isEmpty()) {
+                paragraph.add(new Chunk(textBefore, normalFont));
+            }
+            
+            // Agrega el texto que estaba entre <b> y </b> usando la fuente en negrita
+            String boldText = matcher.group(2);
+            paragraph.add(new Chunk(boldText, boldFont));
+            
+            lastEnd = matcher.end();
+        }
+        
+        // Agrega cualquier texto restante después del último </b>
+        if(lastEnd < formattedContent.length()){
+            String remaining = formattedContent.substring(lastEnd);
+            paragraph.add(new Chunk(remaining, normalFont));
+        }
+        
+        document.add(paragraph);
         document.close();
     }
     
+    
+
 
     public void generateCSV(String content, String outputPath) throws IOException {
-        try (BufferedWriter csvWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath), "UTF-8"))) {
-            csvWriter.write("\"Sección\",\"Contenido\"\n"); // Encabezado
+        try (BufferedWriter csvWriter = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(outputPath), "UTF-8"))) {
+            // Encabezado del CSV
+            csvWriter.write("\"Sección\",\"Contenido\"\n");
     
-            // Reemplazar etiquetas HTML y mantener saltos de línea dentro de una celda
+            // Reemplazar <br> por saltos de línea
             String formattedContent = content.replace("<br>", "\n").replace("<br><br>", "\n\n");
+            // Opcional: eliminar etiquetas HTML para que no aparezcan en el CSV final
+            String plainContent = formattedContent.replaceAll("<[^>]+>", "");
     
-            csvWriter.write("\"Resultado de la IA\",\"" + formattedContent.replace("\"", "\"\"") + "\"\n");
+            // Escapar las comillas dobles del contenido (ya que en CSV se duplican)
+            String escapedContent = plainContent.replace("\"", "\"\"");
+    
+            csvWriter.write("\"Resultado de la IA\",\"" + escapedContent + "\"\n");
         }
     }
+    
 
     public void generateExcel(String content, String outputPath) throws IOException {
     Workbook workbook = new XSSFWorkbook();
