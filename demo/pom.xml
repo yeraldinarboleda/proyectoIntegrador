@@ -109,12 +109,35 @@
             <artifactId>tess4j</artifactId>
             <version>5.15.0</version> <!-- Revisa la última versión disponible -->
         </dependency>
+
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itextpdf</artifactId>
+            <version>5.5.13.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.itextpdf.tool</groupId>
+            <artifactId>xmlworker</artifactId>
+            <version>5.5.13.4</version> <!-- Usa la misma versión que itextpdf -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.0.0</version>
+        </dependency>
+
     </dependencies>
 
     <repositories>
         <repository>
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>itext</id>
+            <url>https://mvnrepository.com/artifact/com.itextpdf/itextpdf</url>
         </repository>
         <repository>
             <id>jitpack.io</id>

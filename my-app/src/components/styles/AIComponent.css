@@ -212,6 +212,54 @@ button:disabled {
     border: 5px solid #ddd;
 }
 
+/* Contenedor de los botones de descarga */
+.download-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    transition: transform 0.5s ease-in-out;
+}
+
+/* Cuando se expande, el botón principal se mueve a la izquierda */
+.download-container.expanded .main-download {
+    transform: translateX(-80px);
+}
+
+/* Contenedor de opciones de descarga */
+.download-options {
+    display: flex;
+    gap: 10px;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+}
+
+/* Cuando las opciones están visibles */
+.download-options.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Botones de descarga */
+.download-button {
+    background-color: #dc3545; /* Rojo */
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.download-button:hover {
+    background-color: #c82333; /* Rojo más oscuro */
+}
+
+
 
 @keyframes spin {
     0% {

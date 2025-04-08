@@ -1,10 +1,27 @@
 package proymodpredictivoia.demo.controller;
 
+import java.io.IOException;
+
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import proymodpredictivoia.demo.ai.AIService;
+import org.springframework.http.HttpStatus;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -80,6 +97,36 @@ public class AIController {
         }
     }
     
-    
+        @GetMapping("/ai/download/excel")
+    public ResponseEntity<byte[]> downloadExcel(@RequestParam String content) {
+        try {
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("Resultado IA");
+
+            // Crear encabezado
+            Row header = sheet.createRow(0);
+            header.createCell(0).setCellValue("Resultado");
+
+            // Agregar contenido
+            Row dataRow = sheet.createRow(1);
+            dataRow.createCell(0).setCellValue(content);
+
+            // Convertir el archivo a bytes
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
+            byte[] excelBytes = outputStream.toByteArray();
+
+            // Configurar los encabezados HTTP para la descarga
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Disposition", "attachment; filename=resultado.xlsx");
+            headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 
 }

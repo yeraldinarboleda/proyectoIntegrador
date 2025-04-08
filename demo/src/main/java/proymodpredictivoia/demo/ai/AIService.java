@@ -4,16 +4,35 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.vision.v1.*;
 import com.google.protobuf.ByteString;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 @Service
 public class AIService {
@@ -131,6 +150,52 @@ private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
             }
             return description.length() > 0 ? description.substring(0, description.length() - 2) : "No se encontraron etiquetas.";
         }
+    }
+
+    public void generatePDF(String content, String outputPath) throws Exception {
+        // Obtén el directorio de salida a partir de la ruta completa
+        File outputFile = new File(outputPath);
+        File outputDir = outputFile.getParentFile();
+        if (!outputDir.exists()) {
+            outputDir.mkdirs(); // Crea el directorio (y subdirectorios) si no existe
+        }
+        
+        Document document = new Document();
+        PdfWriter.getInstance(document, new FileOutputStream(outputPath));
+        document.open();
+        // Reemplazar etiquetas HTML con saltos de línea reales
+        String formattedContent = content.replace("<br>", "\n").replace("<br><br>", "\n\n");
+
+        document.add(new Paragraph(formattedContent));
+
+        document.close();
+    }
+    
+
+    public void generateCSV(String content, String outputPath) throws IOException {
+        try (BufferedWriter csvWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath), "UTF-8"))) {
+            csvWriter.write("\"Sección\",\"Contenido\"\n"); // Encabezado
+    
+            // Reemplazar etiquetas HTML y mantener saltos de línea dentro de una celda
+            String formattedContent = content.replace("<br>", "\n").replace("<br><br>", "\n\n");
+    
+            csvWriter.write("\"Resultado de la IA\",\"" + formattedContent.replace("\"", "\"\"") + "\"\n");
+        }
+    }
+
+    public void generateExcel(String content, String outputPath) throws IOException {
+    Workbook workbook = new XSSFWorkbook();
+    Sheet sheet = workbook.createSheet("Resultado IA");
+
+    Row header = sheet.createRow(0);  // Fila de cabecera
+    header.createCell(0).setCellValue("Resultado");
+
+    Row dataRow = sheet.createRow(1);  // Fila de datos
+    dataRow.createCell(0).setCellValue(content);
+
+    FileOutputStream outputStream = new FileOutputStream(outputPath);
+    workbook.write(outputStream);
+    workbook.close();
     }
 
     public String analyzeWithGemini(String extractedText, String imageDescription) throws IOException {
