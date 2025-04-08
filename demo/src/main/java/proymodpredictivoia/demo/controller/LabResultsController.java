@@ -1,3 +1,5 @@
+package proymodpredictivoia.demo.controller;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -5,19 +7,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import proymodpredictivoia.demo.model.MedicalData;
-import proymodpredictivoia.demo.repository.MedicalDataRepository;
+import proymodpredictivoia.demo.model.LabResults;
+import proymodpredictivoia.demo.repository.LabResultsRepository;
 
 @RestController
 @RequestMapping("/api/personal-data")
 @CrossOrigin(origins = "http://localhost:3000") // Permitir solicitudes desde React
-public class MedicalDataController {
+public class LabResultsController {
 
     @Autowired
-    private MedicalDataRepository MedicalDataRepository;
+    private LabResultsRepository LabResultsRepository;
 
     @PostMapping
-    public MedicalData saveMedicalData(@RequestBody MedicalData MedicalData) {
-        return MedicalDataRepository.save(MedicalData);
+    public LabResults saveLabResults(@RequestBody LabResults LabResults) {
+        return LabResultsRepository.save(LabResults);
     }
 }
