@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -39,6 +40,8 @@ import java.util.regex.Pattern;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Font.FontFamily;
 import com.itextpdf.text.Chunk;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 //import com.opencsv.CSVWriter;
 
 @Service
@@ -68,59 +71,59 @@ public class AIService {
     
     
 
-private String extractTextFromImageFile(MultipartFile imageFile) throws IOException {
-    ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
-    Image img = Image.newBuilder().setContent(imgBytes).build();
-    Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
-    AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+    private String extractTextFromImageFile(MultipartFile imageFile) throws IOException {
+        ByteString imgBytes = ByteString.readFrom(imageFile.getInputStream());
+        Image img = Image.newBuilder().setContent(imgBytes).build();
+        Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
 
-    try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
-        List<AnnotateImageRequest> requests = Collections.singletonList(request);
-        AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
+        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+            List<AnnotateImageRequest> requests = Collections.singletonList(request);
+            AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
 
-        if (response.hasError()) {
-            throw new RuntimeException("Error en la API de Vision: " + response.getError().getMessage());
+            if (response.hasError()) {
+                throw new RuntimeException("Error en la API de Vision: " + response.getError().getMessage());
+            }
+
+            return response.getTextAnnotationsList().isEmpty() ? null : response.getTextAnnotationsList().get(0).getDescription();
         }
-
-        return response.getTextAnnotationsList().isEmpty() ? null : response.getTextAnnotationsList().get(0).getDescription();
     }
-}
 
-private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
-    ByteString pdfBytes = ByteString.readFrom(pdfFile.getInputStream());
-    InputConfig inputConfig = InputConfig.newBuilder()
-            .setMimeType("application/pdf")
-            .setContent(pdfBytes)
-            .build();
-
-    Feature feat = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
-    GcsSource gcsSource = GcsSource.newBuilder().setUri("gs://your-bucket-name/your-pdf-file.pdf").build();
-
-    try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
-        AnnotateFileRequest request = AnnotateFileRequest.newBuilder()
-                .setInputConfig(inputConfig)
-                .addFeatures(feat)
+    private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
+        ByteString pdfBytes = ByteString.readFrom(pdfFile.getInputStream());
+        InputConfig inputConfig = InputConfig.newBuilder()
+                .setMimeType("application/pdf")
+                .setContent(pdfBytes)
                 .build();
 
-        List<AnnotateFileRequest> requests = Collections.singletonList(request);
-        BatchAnnotateFilesResponse response = vision.batchAnnotateFiles(requests);
-        AnnotateFileResponse fileResponse = response.getResponses(0);
+        Feature feat = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
+        GcsSource gcsSource = GcsSource.newBuilder().setUri("gs://your-bucket-name/your-pdf-file.pdf").build();
 
-        if (fileResponse.hasError()) {
-            throw new RuntimeException("Error en la API de Vision: " + fileResponse.getError().getMessage());
-        }
+        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+            AnnotateFileRequest request = AnnotateFileRequest.newBuilder()
+                    .setInputConfig(inputConfig)
+                    .addFeatures(feat)
+                    .build();
 
-        StringBuilder extractedText = new StringBuilder();
-        for (AnnotateImageResponse imageResponse : fileResponse.getResponsesList()) {
-            if (imageResponse.hasError()) {
-                throw new RuntimeException("Error en la API de Vision: " + imageResponse.getError().getMessage());
+            List<AnnotateFileRequest> requests = Collections.singletonList(request);
+            BatchAnnotateFilesResponse response = vision.batchAnnotateFiles(requests);
+            AnnotateFileResponse fileResponse = response.getResponses(0);
+
+            if (fileResponse.hasError()) {
+                throw new RuntimeException("Error en la API de Vision: " + fileResponse.getError().getMessage());
             }
-            extractedText.append(imageResponse.getFullTextAnnotation().getText());
-        }
 
-        return extractedText.toString();
+            StringBuilder extractedText = new StringBuilder();
+            for (AnnotateImageResponse imageResponse : fileResponse.getResponsesList()) {
+                if (imageResponse.hasError()) {
+                    throw new RuntimeException("Error en la API de Vision: " + imageResponse.getError().getMessage());
+                }
+                extractedText.append(imageResponse.getFullTextAnnotation().getText());
+            }
+
+            return extractedText.toString();
+        }
     }
-}
 
     public String describeImage(MultipartFile imageFile) throws IOException {
         if (imageFile == null || imageFile.isEmpty()) {
@@ -232,19 +235,43 @@ private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
     }
     
 
+    
     public void generateExcel(String content, String outputPath) throws IOException {
-    Workbook workbook = new XSSFWorkbook();
-    Sheet sheet = workbook.createSheet("Resultado IA");
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Resultado IA");
 
-    Row header = sheet.createRow(0);  // Fila de cabecera
-    header.createCell(0).setCellValue("Resultado");
+        // Configurar el estilo de la celda para que se ajusten los saltos de línea
+        CellStyle wrapStyle = workbook.createCellStyle();
+        wrapStyle.setWrapText(true);
 
-    Row dataRow = sheet.createRow(1);  // Fila de datos
-    dataRow.createCell(0).setCellValue(content);
+        // Reemplazar <br> por saltos de línea y eliminar etiquetas HTML
+        String formattedContent = content.replace("<br>", "\n")
+                                        .replace("<br><br>", "\n\n");
+        // Eliminar etiquetas HTML (por ejemplo, <b> y </b>)
+        formattedContent = formattedContent.replaceAll("<[^>]+>", "");
 
-    FileOutputStream outputStream = new FileOutputStream(outputPath);
-    workbook.write(outputStream);
-    workbook.close();
+        // Crear fila de encabezado
+        Row header = sheet.createRow(0);
+        Cell headerCell = header.createCell(0);
+        headerCell.setCellValue("Resultado");
+
+        // Crear fila de datos
+        Row dataRow = sheet.createRow(1);
+        Cell contentCell = dataRow.createCell(0);
+        contentCell.setCellValue(formattedContent);
+        contentCell.setCellStyle(wrapStyle);
+
+        // Ajustar el alto de la fila para que se muestre todo el contenido
+        dataRow.setHeight((short) -1);
+
+        // Autoajustar el ancho de la columna
+        sheet.autoSizeColumn(0);
+
+        // Guardar el archivo de Excel
+        try (FileOutputStream outputStream = new FileOutputStream(outputPath)) {
+            workbook.write(outputStream);
+        }
+        workbook.close();
     }
 
     public String analyzeWithGemini(String extractedText, String imageDescription) throws IOException {
