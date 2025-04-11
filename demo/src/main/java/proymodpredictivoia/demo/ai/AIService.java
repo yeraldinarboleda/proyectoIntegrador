@@ -12,7 +12,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,19 +28,23 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import java.awt.image.BufferedImage;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.imageio.ImageIO;
+
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Font.FontFamily;
 import com.itextpdf.text.Chunk;
+
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayOutputStream;
 //import com.opencsv.CSVWriter;
 
 @Service
@@ -90,39 +93,51 @@ public class AIService {
     }
 
     private String extractTextFromPdf(MultipartFile pdfFile) throws IOException {
-        ByteString pdfBytes = ByteString.readFrom(pdfFile.getInputStream());
-        InputConfig inputConfig = InputConfig.newBuilder()
-                .setMimeType("application/pdf")
-                .setContent(pdfBytes)
-                .build();
+        // Usa la conversión de páginas a imágenes
+        return extractTextFromPdfPages(pdfFile);
+    }
+    
 
-        Feature feat = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
-        GcsSource gcsSource = GcsSource.newBuilder().setUri("gs://your-bucket-name/your-pdf-file.pdf").build();
+    private String extractTextFromPdfPages(MultipartFile pdfFile) throws IOException {
+        // Cargar el PDF desde el InputStream del MultipartFile
+        PDDocument document = PDDocument.load(pdfFile.getInputStream());
+        PDFRenderer pdfRenderer = new PDFRenderer(document);
+        StringBuilder extractedText = new StringBuilder();
 
-        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
-            AnnotateFileRequest request = AnnotateFileRequest.newBuilder()
-                    .setInputConfig(inputConfig)
-                    .addFeatures(feat)
-                    .build();
+        // Iterar sobre cada página del PDF
+        for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
+            BufferedImage image = pdfRenderer.renderImageWithDPI(pageIndex, 300, ImageType.RGB);
 
-            List<AnnotateFileRequest> requests = Collections.singletonList(request);
-            BatchAnnotateFilesResponse response = vision.batchAnnotateFiles(requests);
-            AnnotateFileResponse fileResponse = response.getResponses(0);
+            // Convertir la imagen a un arreglo de bytes en formato PNG
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            byte[] imageBytes = baos.toByteArray();
+            baos.close();
 
-            if (fileResponse.hasError()) {
-                throw new RuntimeException("Error en la API de Vision: " + fileResponse.getError().getMessage());
-            }
+            // Crear ByteString a partir de los bytes de la imagen
+            ByteString imgBytes = ByteString.copyFrom(imageBytes);
+            
+            // Construir la imagen para Vision API
+            Image img = Image.newBuilder().setContent(imgBytes).build();
+            Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
+            AnnotateImageRequest request = AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
 
-            StringBuilder extractedText = new StringBuilder();
-            for (AnnotateImageResponse imageResponse : fileResponse.getResponsesList()) {
-                if (imageResponse.hasError()) {
-                    throw new RuntimeException("Error en la API de Vision: " + imageResponse.getError().getMessage());
+            // Llamar a la API de Vision para esta página
+            try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+                List<AnnotateImageRequest> requests = Collections.singletonList(request);
+                AnnotateImageResponse response = vision.batchAnnotateImages(requests).getResponses(0);
+                
+                if (response.hasError()) {
+                    extractedText.append("Error en la página ").append(pageIndex).append(": ")
+                                .append(response.getError().getMessage()).append("\n");
+                } else {
+                    String pageText = response.getTextAnnotationsList().isEmpty() ? "" : response.getTextAnnotationsList().get(0).getDescription();
+                    extractedText.append(pageText).append("\n\n");
                 }
-                extractedText.append(imageResponse.getFullTextAnnotation().getText());
             }
-
-            return extractedText.toString();
         }
+        document.close();
+        return extractedText.toString();
     }
 
     public String describeImage(MultipartFile imageFile) throws IOException {
