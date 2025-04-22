@@ -86,3 +86,11 @@ export const uploadCardioResults = async (electroFiles, ecoFiles) => {
 
   return await response.json();
 };
+
+export const getPersonalDataByDocument = async (documentId) => {
+  const response = await fetch(`${API_URL}/personal-data/document/${documentId}`);
+  if (!response.ok) {
+    throw new Error("Paciente no encontrado");
+  }
+  return await response.json(); // Retorna el objeto del paciente
+};

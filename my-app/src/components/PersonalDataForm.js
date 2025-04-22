@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { sendPersonalData } from "../services/api"; 
+import React, { useEffect, useState } from "react";
+import { sendPersonalData } from "../services/api";
 import "./styles/PersonalDataForm.css";
 
-const PersonalDataForm = () => {
+const PersonalDataForm = ({ initialData }) => {
   const [formData, setFormData] = useState({
     documentType: "",
     documentId: "",
@@ -17,6 +17,13 @@ const PersonalDataForm = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Si initialData cambia, actualiza el formulario
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -44,17 +51,6 @@ const PersonalDataForm = () => {
     try {
       const response = await sendPersonalData(formData);
       alert("Datos guardados correctamente: " + JSON.stringify(response));
-      setFormData({
-        documentType: "",
-        documentId: "",
-        firstName: "",
-        lastName: "",
-        birthDate: "",
-        gender: "",
-        address: "",
-        contact: "",
-        gmail: "",
-      });
     } catch (error) {
       alert("Error al guardar los datos");
     } finally {
@@ -64,7 +60,7 @@ const PersonalDataForm = () => {
 
   return (
     <div className="form-container">
-      <h2>Datos Personales</h2>
+      <h2>{initialData ? "Editar Datos del Paciente" : "Registrar Nuevo Paciente"}</h2>
       <form onSubmit={handleSubmit} className="personal-form">
         {[
           { label: "Tipo de Documento", name: "documentType", type: "select", options: ["Registro civil (RC)", "Tarjeta de identidad (TI)", "Cédula de ciudadanía (CC)", "Tarjeta de extranjería (TE)", "Cédula de extranjería (CE)", "Número de identificación tributaria (NIT)", "Pasaporte (PP)", "Permiso especial de permanencia (PEP)", "Documento de identificación extranjero (DIE)", "Otro"] },
@@ -87,7 +83,13 @@ const PersonalDataForm = () => {
                 ))}
               </select>
             ) : (
-              <input type={field.type} name={field.name} value={formData[field.name]} onChange={handleChange} required />
+              <input
+                type={field.type}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={handleChange}
+                required
+              />
             )}
             {errors[field.name] && <p className="error-message">{errors[field.name]}</p>}
           </div>
