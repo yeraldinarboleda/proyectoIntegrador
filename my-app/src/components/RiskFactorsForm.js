@@ -19,6 +19,7 @@ const RiskFactorsForm = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
@@ -35,13 +36,58 @@ const RiskFactorsForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log('Factores de riesgo:', formData);
-      alert('Factores de riesgo guardados correctamente');
-    } else {
+
+    if (!validateForm()) {
       alert('Por favor, complete todos los campos obligatorios');
+      return;
+    }
+
+    setLoading(true);
+
+    // Limpieza de datos para evitar errores con campos opcionales
+    const cleanedData = {
+      ...formData,
+      diabetesType: formData.diabetes ? formData.diabetesType : null,
+      cardiovascularDiseaseType: formData.cardiovascularDiseases ? formData.cardiovascularDiseaseType : null,
+      otherCardiovascularDiseases: formData.cardiovascularDiseases ? formData.otherCardiovascularDiseases : null,
+    };
+
+    try {
+      const response = await fetch('http://localhost:8081/api/risk-factors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cleanedData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al guardar factores de riesgo');
+      }
+
+      alert('Factores de riesgo guardados correctamente');
+      setFormData({
+        smoking: false,
+        drugUse: false,
+        alcoholConsumption: false,
+        physicalActivity: '',
+        diet: '',
+        diabetes: false,
+        diabetesType: '',
+        highCholesterol: false,
+        hypertension: false,
+        medicationUse: false,
+        cardiovascularDiseases: false,
+        cardiovascularDiseaseType: '',
+        otherCardiovascularDiseases: '',
+      });
+    } catch (error) {
+      alert('Error al guardar factores de riesgo');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,7 +127,7 @@ const RiskFactorsForm = () => {
         {formData.diabetes && (
           <div className="input-group">
             <label>Tipo de diabetes:</label>
-            <select name="diabetesType" value={formData.diabetesType} onChange={handleChange} required>
+            <select name="diabetesType" value={formData.diabetesType} onChange={handleChange}>
               <option value="">Seleccione</option>
               <option value="type1">Tipo 1</option>
               <option value="type2">Tipo 2</option>
@@ -106,7 +152,7 @@ const RiskFactorsForm = () => {
           <>
             <div className="input-group">
               <label>Tipo de enfermedad cardiovascular:</label>
-              <select name="cardiovascularDiseaseType" value={formData.cardiovascularDiseaseType} onChange={handleChange} required>
+              <select name="cardiovascularDiseaseType" value={formData.cardiovascularDiseaseType} onChange={handleChange}>
                 <option value="">Seleccione</option>
                 <option value="heartAttack">Infarto</option>
                 <option value="arrhythmia">Arritmia</option>
@@ -130,7 +176,7 @@ const RiskFactorsForm = () => {
 
         <div className="input-group">
           <label>Nivel de actividad física:</label>
-          <select name="physicalActivity" value={formData.physicalActivity} onChange={handleChange} required>
+          <select name="physicalActivity" value={formData.physicalActivity} onChange={handleChange}>
             <option value="">Seleccione</option>
             <option value="low">Baja</option>
             <option value="moderate">Moderada</option>
@@ -141,7 +187,7 @@ const RiskFactorsForm = () => {
 
         <div className="input-group">
           <label>Dieta:</label>
-          <select name="diet" value={formData.diet} onChange={handleChange} required>
+          <select name="diet" value={formData.diet} onChange={handleChange}>
             <option value="">Seleccione</option>
             <option value="healthy">Saludable</option>
             <option value="average">Promedio</option>
@@ -150,7 +196,9 @@ const RiskFactorsForm = () => {
           {errors.diet && <p className="error-message">{errors.diet}</p>}
         </div>
 
-        <button type="submit" className="save-button">Guardar</button>
+        <button type="submit" className="save-button" disabled={loading}>
+          {loading ? 'Guardando...' : 'Guardar'}
+        </button>
       </form>
     </div>
   );

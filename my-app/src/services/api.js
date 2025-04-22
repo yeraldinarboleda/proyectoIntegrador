@@ -20,3 +20,69 @@ export const sendPersonalData = async (personalData) => {
     throw error;
   }
 };
+
+export const sendMedicalData = async (data) => {
+  const response = await fetch(`${API_URL}/Medical-data`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al guardar datos médicos");
+  }
+
+  return response.json();
+};
+
+export const sendRiskFactors = async (data) => {
+  const response = await fetch(`${API_URL}/risk-factors`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al guardar factores de riesgo");
+  }
+
+  return response.json();
+};
+
+export const sendLabResults = async (data) => {
+  const response = await fetch(`${API_URL}/lab-results`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al guardar resultados de laboratorio");
+  }
+
+  return response.json();
+};
+
+export const uploadCardioResults = async (electroFiles, ecoFiles) => {
+  const formData = new FormData();
+
+  electroFiles.forEach(file => formData.append('electroFiles', file));
+  ecoFiles.forEach(file => formData.append('ecoFiles', file));
+
+  const response = await fetch(`${API_URL}/cardio-results/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al subir archivos de resultados cardiológicos');
+  }
+
+  return await response.json();
+};

@@ -1,23 +1,35 @@
 import React, { useState } from 'react';
 import './styles/CardioResultsForm.css';
+import { uploadCardioResults } from "../services/api";
 
 const CardioResultsForm = () => {
   const [electroFiles, setElectroFiles] = useState([]);
   const [ecoFiles, setEcoFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handleElectroChange = (e) => {
-    setElectroFiles([...electroFiles, ...e.target.files]);
+    setElectroFiles([...e.target.files]);
   };
 
   const handleEcoChange = (e) => {
-    setEcoFiles([...ecoFiles, ...e.target.files]);
+    setEcoFiles([...e.target.files]);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Electrocardiograma:', electroFiles);
-    console.log('Ecocardiograma:', ecoFiles);
-    alert('Resultados cardiológicos guardados correctamente');
+    setLoading(true);
+
+    try {
+      await uploadCardioResults(electroFiles, ecoFiles);
+      alert('Resultados cardiológicos guardados correctamente');
+      setElectroFiles([]);
+      setEcoFiles([]);
+    } catch (error) {
+      alert('Error al enviar archivos');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,40 +37,17 @@ const CardioResultsForm = () => {
       <h2>Resultados Cardiológicos</h2>
       <form onSubmit={handleSubmit} className="cardio-form">
         <div className="input-group">
-          <label>Cargar Electrocardiograma (imágenes o PDFs):</label>
-          <input type="file" accept="image/*,application/pdf" multiple onChange={handleElectroChange} />
+          <label>Electrocardiograma (PDF o imagen):</label>
+          <input type="file" multiple accept="image/*,application/pdf" onChange={handleElectroChange} />
         </div>
         <div className="input-group">
-          <label>Cargar Ecocardiograma (imágenes o PDFs):</label>
-          <input type="file" accept="image/*,application/pdf" multiple onChange={handleEcoChange} />
+          <label>Ecocardiograma (PDF o imagen):</label>
+          <input type="file" multiple accept="image/*,application/pdf" onChange={handleEcoChange} />
         </div>
-        <button type="submit" className="save-button">Guardar</button>
+        <button type="submit" className="save-button" disabled={loading}>
+          {loading ? 'Guardando...' : 'Guardar'}
+        </button>
       </form>
-      {(electroFiles.length > 0 || ecoFiles.length > 0) && (
-        <div className="file-preview">
-          <h3>Archivos seleccionados:</h3>
-          {electroFiles.length > 0 && (
-            <div>
-              <h4>Electrocardiograma:</h4>
-              <ul>
-                {electroFiles.map((file, index) => (
-                  <li key={index}>{file.name}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {ecoFiles.length > 0 && (
-            <div>
-              <h4>Ecocardiograma:</h4>
-              <ul>
-                {ecoFiles.map((file, index) => (
-                  <li key={index}>{file.name}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
