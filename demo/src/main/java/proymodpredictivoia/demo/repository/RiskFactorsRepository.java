@@ -3,8 +3,8 @@ package proymodpredictivoia.demo.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import proymodpredictivoia.demo.model.MedicalData;
+import proymodpredictivoia.demo.model.RiskFactors;
 
 @Repository
-public interface MedicalDataRepository extends JpaRepository<MedicalData, String> {
+public interface RiskFactorsRepository extends JpaRepository<RiskFactors, Long>{
 }
