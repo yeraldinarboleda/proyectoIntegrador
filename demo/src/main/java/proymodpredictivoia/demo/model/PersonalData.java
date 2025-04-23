@@ -1,8 +1,13 @@
 package proymodpredictivoia.demo.model;
 
-import jakarta.persistence.*;
+import java.time.LocalDate;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;  // 📌 Para manejar las fechas de forma correcta
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.Data;
-import java.time.LocalDate;  // 📌 Para manejar las fechas de forma correcta
 
 @Entity
 @Table(name = "personal_data")
@@ -32,4 +37,8 @@ public class PersonalData {
     private String gmail;
 
     // Getters y setters generados por Lombok (@Data)
+
+    @OneToOne(mappedBy = "personalData")
+    private PatientRecord patientRecord;
+
 }
