@@ -7,6 +7,9 @@ import com.google.protobuf.ByteString;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
+import java.util.regex.*;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -26,7 +29,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.awt.image.BufferedImage;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -49,6 +54,22 @@ import java.io.ByteArrayOutputStream;
 
 @Service
 public class AIService {
+
+
+    private static final List<String> FEATURE_KEYS = Arrays.asList(
+        "age",
+        "gender",
+        "chestpain",
+        "restingBP",
+        "serumcholestrol",
+        "fastingbloodsugar",
+        "restingrelectro",
+        "maxheartrate",
+        "exerciseangia",
+        "oldpeak",
+        "slope",
+        "noofmajorvessels"
+    );
 
     @Value("${API_GEMINI_KEY}")
     private String geminiApiKey;
@@ -289,60 +310,162 @@ public class AIService {
         workbook.close();
     }
 
-    public String analyzeWithGemini(String extractedText, String imageDescription) throws IOException {
-        WebClient webClient = WebClient.create();
-
-        String prompt = "Eres un cardiologo experto el cual te encargas de analizar el siguiente texto extraido de una imagen y" 
-        +"su descripcion, y dar una respuesta basada en el contenido de la imagen, asi como dar un diagnotico final,"+ 
-        "tambien puedes responder preguntas sin necesidad de una imagen, solo con el texto, y dar un diagnostico final,"+ 
-        "y dar una respuesta basada en el contenido del texto, Ademas tienes que decir que pasaria si no sigue las recomendaciones y que pasaria si sigue las recomendaciones.: " +
-        "Texto extraido: " + (extractedText != null ? extractedText : "No se encontró texto.") +
-        " Descripcion de la imagen: " + (imageDescription != null ? imageDescription : "No se encontró descripción.");
-
-        String escapedPrompt = prompt.replace("\"", "\\\"");
-        String requestBody = String.format("{\"contents\": [{\"parts\": [{\"text\": \"%s\"}]}]}", escapedPrompt);
-
-        System.out.println("Request Body: " + requestBody);
-
+    public String getModelPredictionFromAPI(String jsonPaciente) {
         try {
+            WebClient webClient = WebClient.create();
             String response = webClient.post()
-                    .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" + geminiApiKey)
-                    .header("Content-Type", "application/json")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
-
-            System.out.println("Raw Gemini Response: " + response);
-
-            if (response != null && !response.isEmpty()) {
-                try {
-                    ObjectMapper objectMapper = new ObjectMapper();
-                    JsonNode jsonNode = objectMapper.readTree(response);
-                    JsonNode textNode = jsonNode.path("candidates").path(0).path("content").path("parts").path(0).path("text");
-
-                    if (textNode.isTextual()) {
-                        return textNode.asText();
-                    } else {
-                        System.out.println("No text content found in Gemini response.");
-                        return "No response from Gemini (text content not found).";
-                    }
-
-                } catch (Exception e) {
-                    System.out.println("Error parsing Gemini response: " + e.getMessage());
-                    return "Error parsing Gemini response.";
-                }
-            } else {
-                System.out.println("Empty response from Gemini.");
-                return "No response from Gemini (empty response).";
-            }
-
-        } catch (WebClientResponseException e) {
-            System.out.println("Error en la solicitud a Gemini: " + e.getMessage());
-            System.out.println("Response body: " + e.getResponseBodyAsString());
-            throw new RuntimeException("Error en la API Gemini: " + e.getResponseBodyAsString(), e);
+                .uri("http://localhost:5000/predict")
+                .header("Content-Type", "application/json")
+                .bodyValue(jsonPaciente)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+    
+            return response;
         } catch (Exception e) {
-            throw new RuntimeException("Error inesperado en la solicitud a Gemini: " + e.getMessage(), e);
+            System.out.println("Error al consultar el modelo: " + e.getMessage());
+            return "{\"error\": \"No se pudo obtener la predicción del modelo.\"}";
         }
     }
+    
+
+    
+    /**
+     * Detecta en el texto los campos que necesita el modelo
+     * y los convierte en un Map listo para pasar como JSON a /predict
+     */
+    private Map<String,Object> parsePatientData(String text) {
+        Map<String,Object> data = new HashMap<>();
+
+        Matcher m;
+        // 1) Edad
+        m = Pattern.compile("(?i)\\bEdad[:\\s]*(\\d{1,3})\\b").matcher(text);
+        if (m.find()) data.put("age", Integer.parseInt(m.group(1)));
+
+        // 2) Género (0=Femenino, 1=Masculino)
+        m = Pattern.compile("(?i)G[eé]nero[:\\s]*(Masculino|Femenino)").matcher(text);
+        if (m.find()) {
+            String g = m.group(1).toLowerCase();
+            data.put("gender", g.startsWith("m") ? 1 : 0);
+        }
+
+        // 3) Tipo de dolor torácico / chestpain (0–3)
+        m = Pattern.compile("(?i)(?:Chest pain type|Tipo de dolor tor[aá]cico)[:\\s]*(\\d)").matcher(text);
+        if (m.find()) data.put("chestpain", Integer.parseInt(m.group(1)));
+
+        // 4) Presión arterial de reposo (sistólica) restingBP
+        m = Pattern.compile("(?i)Presi[oó]n arterial[:\\s]*(\\d{2,3})/(\\d{2,3})").matcher(text);
+        if (m.find()) data.put("restingBP", Integer.parseInt(m.group(1)));
+
+        // 5) Colesterol sérico total serumcholestrol
+        m = Pattern.compile("(?i)(?:Colesterol total|Serum cholesterol)[:\\s]*(\\d{2,3})").matcher(text);
+        if (m.find()) data.put("serumcholestrol", Integer.parseInt(m.group(1)));
+
+        // 6) Azúcar en ayunas fastingbloodsugar (0/1)
+        m = Pattern.compile("(?i)(?:Az[uú]car en sangre en ayunas|Fasting blood sugar)[:\\s]*(\\d)").matcher(text);
+        if (m.find()) data.put("fastingbloodsugar", Integer.parseInt(m.group(1)));
+
+        // 7) Resultados ECG en reposo restingrelectro (0–2)
+        m = Pattern.compile("(?i)(?:Resting electrocardiogram.*?results|Electrocardiograma en reposo)[:\\s]*(\\d)").matcher(text);
+        if (m.find()) data.put("restingrelectro", Integer.parseInt(m.group(1)));
+
+        // 8) FC máxima maxheartrate
+        m = Pattern.compile("(?i)(?:Maximum heart rate achieved|Frecuencia card[ií]aca m[aá]xima)[:\\s]*(\\d{2,3})").matcher(text);
+        if (m.find()) data.put("maxheartrate", Integer.parseInt(m.group(1)));
+
+        // 9) Angina inducida por ejercicio exerciseangia (0=No,1=Sí)
+        m = Pattern.compile("(?i)(?:Exercise induced angina|Angina inducida por el ejercicio)[:\\s]*(S[ií]|No)").matcher(text);
+        if (m.find()) data.put("exerciseangia", m.group(1).toLowerCase().startsWith("s") ? 1 : 0);
+
+        // 10) Oldpeak (depresión ST) oldpeak (float)
+        m = Pattern.compile("(?i)(?:Oldpeak|ST)[:\\s]*(\\d+\\.?\\d*)").matcher(text);
+        if (m.find()) data.put("oldpeak", Double.parseDouble(m.group(1)));
+
+        // 11) Slope del segmento ST (1–3)
+        m = Pattern.compile("(?i)(?:Slope of the peak exercise ST segment|Slope)[:\\s]*(\\d)").matcher(text);
+        if (m.find()) data.put("slope", Integer.parseInt(m.group(1)));
+
+        // 12) Número de vasos principales noofmajorvessels (0–3)
+        m = Pattern.compile("(?i)(?:Number of major vessels|Número de vasos principales)[:\\s]*(\\d)").matcher(text);
+        if (m.find()) data.put("noofmajorvessels", Integer.parseInt(m.group(1)));
+
+        // --- Rellenar con 0 cualquiera que no se haya detectado
+        for (String key : FEATURE_KEYS) {
+            data.putIfAbsent(key, 0);
+        }
+
+        return data;
+    }
+
+    private final WebClient predictClient = WebClient.create("http://localhost:5000");
+    private PredictResponse callPredictiveModel(Map<String,Object> patientData) {
+        // --- imprime el JSON que vas a enviar
+        System.out.println("DEBUG: enviando a /predict → " + patientData);
+    
+        try {
+          return predictClient.post()
+              .uri("/predict")
+              .bodyValue(patientData)
+              .retrieve()
+              .bodyToMono(PredictResponse.class)
+              .block();
+        } catch (WebClientResponseException e) {
+          // imprime el cuerpo de la respuesta de error
+        System.err.println("ERROR 400 from /predict: " + e.getResponseBodyAsString());
+        throw e;
+        }
+    }
+    
+
+    public String analyzeWithGeminiFullContext(
+        String ocrText,
+        String imageDesc,
+        String patientDataText
+    ) throws IOException {
+    
+      // 1) Parsear los datos útiles
+        Map<String,Object> patientData = parsePatientData(patientDataText);
+    
+      // 2) Llamar al RF micro-servicio
+        PredictResponse pr = callPredictiveModel(patientData);
+    
+      // 3) Construir prompt
+        StringBuilder prompt = new StringBuilder();
+            prompt.append("Eres un cardiólogo experto el cual basa su respuesta en un modelo predictivo de la base de datos de datos de pacientes, y debes analizar la siguiente información para dar un diagnostico final:\n\n")
+            .append("Datos extraídos:\n")
+            .append(ocrText).append("\n\n")
+            .append("Descripción de imagen:\n")
+            .append(imageDesc).append("\n\n")
+            .append("Datos del paciente (JSON):\n")
+            .append(patientData).append("\n\n")
+            .append("Predicción modelo:\n")
+            .append(String.format("Probabilidad de enfermedad cardiovascular: %.2f%%\n", pr.probability*100))
+            .append("Top características:\n");
+      for (List<Object> feat : pr.top_features) {
+        prompt.append("- ").append(feat.get(0)).append(": ").append(feat.get(1)).append("\n");
+      }
+      prompt.append("\nCon base en toda esta información, como cardiólogo experto ...");
+    
+      // 4) Enviar a Gemini
+      String escaped = prompt.toString().replace("\"","\\\"");
+      String body = String.format(
+        "{\"contents\":[{\"parts\":[{\"text\":\"%s\"}]}]}",
+        escaped
+      );
+    
+      String geminiResp = WebClient.create()
+          .post()
+          .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key="+geminiApiKey)
+          .header("Content-Type","application/json")
+          .bodyValue(body)
+          .retrieve()
+          .bodyToMono(String.class)
+          .block();
+    
+      // parsea y devuelve solo el texto
+      JsonNode root = new ObjectMapper().readTree(geminiResp);
+      return root.at("/candidates/0/content/parts/0/text").asText();
+    }
+    
+    
 }

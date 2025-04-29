@@ -1,0 +1,11 @@
+flask
+joblib
+numpy
+
+------
+Ejecutar el predictor de python
+cd python-predictor
+python3 -m venv venv     # opcional
+source venv/bin/activate # opcional
+pip install -r requirements.txt
+python python-predictor\serve_predict.py
