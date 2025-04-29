@@ -2,7 +2,6 @@ package proymodpredictivoia.demo.controller;
 
 import java.io.IOException;
 
-import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -12,16 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 import proymodpredictivoia.demo.ai.AIService;
 import org.springframework.http.HttpStatus;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -30,74 +21,77 @@ public class AIController {
     @Autowired
     private AIService aiService;
 
+    /** 
+     * Recibe: 
+     * - archivos (imágenes o PDF), 
+     * - texto libre opcional, 
+     * - y los datos del paciente como JSON (patientData).
+     * Devuelve el análisis de Gemini integrado con la predicción del modelo.
+     */
     @PostMapping("/generate")
-    public ResponseEntity<String> generateFromImageOrText(
+    public ResponseEntity<String> generateFromImageTextAndPatient(
             @RequestParam(value = "files", required = false) MultipartFile[] files,
-            @RequestParam(value = "text", required = false) String text) {
+            @RequestParam(value = "text", required = false) String text
+            //@RequestParam(value = "patientData", required = true) String patientDataJson
+    ) {
         try {
-            System.out.println("Files received: " + (files != null ? files.length : "null"));
-            System.out.println("Text received: " + text);
-            
-            if ((files == null || files.length == 0) && (text == null || text.isEmpty())) {
-                return ResponseEntity.badRequest().body("Se requiere al menos una imagen o un texto.");
+            // 1) Validar entrada mínima
+            if ((files == null || files.length == 0) && (text == null || text.isBlank())) {
+                return ResponseEntity.badRequest().body("Se requiere al menos un archivo o un texto.");
             }
-            
+
+            // 2) Extraer texto y descripciones de cada archivo
             StringBuilder combinedText = new StringBuilder();
             StringBuilder fileDescriptions = new StringBuilder();
-            
-            // Agrega el texto ingresado por el usuario, si existe
-            if (text != null && !text.isEmpty()) {
-                combinedText.append("Texto ingresado por el usuario:\n").append(text).append("\n\n");
+
+            if (text != null && !text.isBlank()) {
+                combinedText.append("Texto ingresado por el usuario:\n")
+                            .append(text).append("\n\n");
             }
-            
-            // Procesa todos los archivos y concatena su texto extraído y sus descripciones
-            if (files != null && files.length > 0) {
+
+            if (files != null) {
                 for (MultipartFile file : files) {
                     if (!file.isEmpty()) {
-                        String extractedText;
-                        String imageDescription;
-                        try {
-                            extractedText = aiService.extractTextFromImage(file);
-                        } catch (Exception e) {
-                            extractedText = "Error al extraer texto: " + e.getMessage();
+                        String extracted = aiService.extractTextFromImage(file);
+                        String desc      = aiService.describeImage(file);
+
+                        if (extracted == null || extracted.isBlank()) {
+                            extracted = "No se pudo extraer texto de este archivo.";
                         }
-                        try {
-                            imageDescription = aiService.describeImage(file);
-                        } catch (Exception e) {
-                            imageDescription = "Error al generar descripción: " + e.getMessage();
+                        if (desc == null || desc.isBlank()) {
+                            desc = "No se pudo generar descripción para este archivo.";
                         }
-                        
-                        // Si la extracción devuelve null o vacío, asigna un mensaje por defecto
-                        if (extractedText == null || extractedText.isEmpty()) {
-                            extractedText = "No se pudo extraer texto de este archivo.";
-                        }
-                        if (imageDescription == null || imageDescription.isEmpty()) {
-                            imageDescription = "No se pudo generar una descripción para este archivo.";
-                        }
-                        
-                        combinedText.append("ARCHIVO: ").append(file.getOriginalFilename()).append("\n")
-                                    .append("Texto extraído:\n").append(extractedText).append("\n\n");
-                        fileDescriptions.append("Descripción de ").append(file.getOriginalFilename()).append(":\n")
-                                        .append(imageDescription).append("\n\n");
+
+                        combinedText.append("ARCHIVO: ")
+                                    .append(file.getOriginalFilename()).append("\n")
+                                    .append("Texto extraído:\n")
+                                    .append(extracted).append("\n\n");
+
+                        fileDescriptions.append("Descripción de ")
+                                        .append(file.getOriginalFilename()).append(":\n")
+                                        .append(desc).append("\n\n");
                     }
                 }
             }
-            
-            if (combinedText.toString().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("No se pudo extraer texto de ningún archivo.");
-            }
-            
-            // Llama a la IA (Gemini) enviando la información combinada de texto y de archivos
-            String analysis = aiService.analyzeWithGemini(combinedText.toString(), fileDescriptions.toString());
-            return ResponseEntity.ok(analysis);
-            
+
+            // 3) Llamar al servicio que integra Vision AI + Modelo predictivo + Gemini
+            String result = aiService.analyzeWithGeminiFullContext(
+            combinedText.toString(),
+            fileDescriptions.toString(),
+            (text!=null? text: "") + "\n" + combinedText.toString()
+        );
+        return ResponseEntity.ok(result);
+
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Error procesando la solicitud: " + e.getMessage());
+            return ResponseEntity
+                    .status(500)
+                    .body("Error procesando la solicitud: " + e.getMessage());
         }
     }
+
     
-        @GetMapping("/ai/download/excel")
+    @GetMapping("/ai/download/excel")
     public ResponseEntity<byte[]> downloadExcel(@RequestParam String content) {
         try {
             Workbook workbook = new XSSFWorkbook();
