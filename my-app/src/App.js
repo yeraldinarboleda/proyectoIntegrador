@@ -2,6 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import AIComponent from './components/AIComponent';
 import DashboardComponent from './containers/DashboardComponent'; // Importa el nuevo componente
+
+
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+
 import './App.css';
 import LoginComponent from './components/LoginComponent';
 

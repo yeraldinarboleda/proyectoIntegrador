@@ -1,55 +1,133 @@
 import React, { useState } from "react";
+import { Heart, Activity, Lock, User, Eye, EyeOff } from "lucide-react";
 import "./styles/Login.css";
 
-const Login = () => {
-  const [formData, setFormData] = useState({
-    documentId: "",
-    password: "",
-  });
+const LoginComponent = () => {
+  const [formData, setFormData] = useState({ documentId: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.documentId || !formData.password) {
-      alert("Por favor, completa todos los campos");
-      return;
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      // Simulación de login
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Aquí iría la lógica real del login
+      alert("Login exitoso");
+    } catch (err) {
+      setError("Credenciales inválidas");
+    } finally {
+      setLoading(false);
     }
-    console.log("Login exitoso con", formData);
-    alert("Inicio de sesión exitoso");
   };
 
   return (
-    <div className="form-container">
-      <h2>Iniciar Sesión</h2>
-      <form onSubmit={handleSubmit} className="login-form">
-        <div className="input-group">
-          <label htmlFor="documentId">Documento de Identidad:</label>
-          <input
-            type="text"
-            id="documentId"
-            name="documentId"
-            value={formData.documentId}
-            onChange={handleChange}
-          />
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-header">
+          <div className="login-header-logo">
+            <Heart className="heart-icon h-8 w-8" fill="#f87171" />
+            <div className="login-header-text">
+              <h2 className="login-header-title">CardioHealth AI</h2>
+              <p className="login-header-subtitle">Sistema de diagnóstico cardiovascular</p>
+            </div>
+          </div>
+          <Activity className="ecg-icon" />
         </div>
-        <div className="input-group">
-          <label htmlFor="password">Contraseña:</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-          />
+
+        <div className="login-body">
+          <h3 className="login-title">Iniciar Sesión</h3>
+
+          {error && <div className="login-alert">{error}</div>}
+
+          <div className="form-group">
+            <label htmlFor="documentId">Documento de Identidad</label>
+            <div className="input-wrapper">
+              <User className="input-icon" />
+              <input
+                type="text"
+                name="documentId"
+                id="documentId"
+                value={formData.documentId}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Ingrese su documento"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Contraseña</label>
+            <div className="input-wrapper">
+              <Lock className="input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                id="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Ingrese su contraseña"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="password-toggle"
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+          </div>
+
+          <div className="login-options">
+            <div className="remember-option">
+              <input
+                id="remember"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={() => setRememberMe(!rememberMe)}
+              />
+              <label htmlFor="remember">Recordarme</label>
+            </div>
+            <a href="#" className="forgot-password">¿Olvidó su contraseña?</a>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="login-button"
+          >
+            {loading ? (
+              <>
+                <div className="spinner"></div>
+                Procesando...
+              </>
+            ) : (
+              "Ingresar"
+            )}
+          </button>
+
+          <div className="navigation-links">
+            <a href="/">Login</a>
+            <a href="/ia">IA</a>
+            <a href="/dashboard">Dashboard</a>
+          </div>
         </div>
-        <button type="submit" className="save-button">Ingresar</button>
-      </form>
+
+        <div className="bg-gray-50 px-4 py-3 text-center text-xs text-gray-500">
+          CardioHealth AI © {new Date().getFullYear()} | Versión 1.0
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Login;
-
+export default LoginComponent;
