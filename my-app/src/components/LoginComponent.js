@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Heart, Activity, Lock, User, Eye, EyeOff } from "lucide-react";
 import "./styles/Login.css";
 
+import { useNavigate } from "react-router-dom";
+
 const LoginComponent = () => {
   const [formData, setFormData] = useState({ documentId: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -13,21 +15,35 @@ const LoginComponent = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+const navigate = useNavigate();
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      // Simulación de login
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Aquí iría la lógica real del login
-      alert("Login exitoso");
-    } catch (err) {
-      setError("Credenciales inválidas");
-    } finally {
-      setLoading(false);
+ const handleSubmit = async () => {
+  setLoading(true);
+  setError("");
+
+  try {
+    const response = await fetch("http://localhost:8081/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      throw new Error("Credenciales inválidas");
     }
-  };
+
+    // Redirige al dashboard
+    navigate("/dashboard");  // Cambia "/dashboard" por tu ruta real
+  } catch (err) {
+    setError("Credenciales inválidas");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="login-page">

@@ -3,6 +3,11 @@ cd demo
 ./mvnw clean install  
 docker compose up -d  
 ./mvnw spring-boot:run  
+
+
+# pruebas backend 
+./mvnw clean test
+
 http://localhost:8081/api/ai/generate?text=  
 # iniciar frontend  
 cd my-app  
