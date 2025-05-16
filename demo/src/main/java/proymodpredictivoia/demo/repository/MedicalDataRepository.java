@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 import proymodpredictivoia.demo.model.MedicalData;
 
 @Repository
-public interface MedicalDataRepository extends JpaRepository<MedicalData, String> {
+public interface MedicalDataRepository extends JpaRepository<MedicalData, Long> {
 }
