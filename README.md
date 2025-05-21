@@ -14,6 +14,8 @@ cd my-app
 npm install  
 npm start  
 http://localhost:3000  
+# Iniciar microservicio  
+python python-predictor\serve_predict.py  
 
 # ARQUITECTURA BACKEND  
 src/main/java/com/projectname/  

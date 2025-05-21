@@ -48,17 +48,52 @@ function AIComponent() {
         setIsLoading(false);
     };
 
-    const handleDownload = (format) => {
-        const baseFilename = "diagnostico";
-        const encodedFilename = encodeURIComponent(baseFilename);
-        const encodedContent = encodeURIComponent(aiResponse);
-    
-        const url = `http://localhost:8081/ai/download?format=${format}&content=${encodedContent}&filename=${encodedFilename}`;
-        
-        window.open(url, '_blank');
+    const handleDownload = async (format) => {
+        if (!aiResponse) return;
+
+        let url;
+        let filename;
+        switch (format) {
+            case 'pdf':
+                url = 'http://localhost:8081/api/ai/download/pdf';
+                filename = 'resultado.pdf';
+                break;
+            case 'csv':
+                url = 'http://localhost:8081/api/ai/download/csv';
+                filename = 'resultado.csv';
+                break;
+            case 'xlsx':
+                url = 'http://localhost:8081/api/ai/download/excel';
+                filename = 'resultado.xlsx';
+                break;
+            default:
+                return;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: aiResponse }),
+            });
+
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (err) {
+            console.error('Error descargando:', err);
+            alert('No se pudo descargar el archivo.');
+        }
     };
-    
-    
+
     
     return (
         <div className="ai-component">

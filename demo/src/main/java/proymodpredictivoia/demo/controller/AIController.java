@@ -1,6 +1,7 @@
 package proymodpredictivoia.demo.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,37 +91,52 @@ public class AIController {
         }
     }
 
-    
-    @GetMapping("/ai/download/excel")
-    public ResponseEntity<byte[]> downloadExcel(@RequestParam String content) {
+
+    @PostMapping("/download/csv")
+    public ResponseEntity<byte[]> downloadCsv(@RequestBody String content) {
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+        aiService.generateCSV(content, baos);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=resultado.csv");
+        headers.add("Content-Type", "text/csv; charset=UTF-8");
+        return new ResponseEntity<>(baos.toByteArray(), headers, HttpStatus.OK);
+    } catch (IOException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+    }
+
+
+    @PostMapping("/download/excel")
+    public ResponseEntity<byte[]> downloadExcel(@RequestBody Map<String,String> body) {
+        String content = body.get("content");
+        if(content == null) return ResponseEntity.badRequest().build();
         try {
-            Workbook workbook = new XSSFWorkbook();
-            Sheet sheet = workbook.createSheet("Resultado IA");
-
-            // Crear encabezado
-            Row header = sheet.createRow(0);
-            header.createCell(0).setCellValue("Resultado");
-
-            // Agregar contenido
-            Row dataRow = sheet.createRow(1);
-            dataRow.createCell(0).setCellValue(content);
-
-            // Convertir el archivo a bytes
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            workbook.write(outputStream);
-            workbook.close();
-            byte[] excelBytes = outputStream.toByteArray();
-
-            // Configurar los encabezados HTTP para la descarga
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Disposition", "attachment; filename=resultado.xlsx");
-            headers.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
-            return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        aiService.generateExcel(content, baos);
+        HttpHeaders h = new HttpHeaders();
+        h.add("Content-Disposition", "attachment; filename=resultado.xlsx");
+        h.add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        return new ResponseEntity<>(baos.toByteArray(), h, HttpStatus.OK);
+        } catch(IOException e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @PostMapping("/download/pdf")
+    public ResponseEntity<byte[]> downloadPdf(@RequestBody Map<String,String> body) {
+        String content = body.get("content");
+        if(content == null) return ResponseEntity.badRequest().build();
+        try {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        aiService.generatePDF(content, baos);
+        HttpHeaders h = new HttpHeaders();
+        h.add("Content-Disposition", "attachment; filename=resultado.pdf");
+        h.add("Content-Type", "application/pdf");
+        return new ResponseEntity<>(baos.toByteArray(), h, HttpStatus.OK);
+        } catch(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
 
 }
