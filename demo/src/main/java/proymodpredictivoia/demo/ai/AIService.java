@@ -410,62 +410,72 @@ public class AIService {
         Matcher m;
 
         // 1) Edad
-        m = Pattern.compile("(?i)(?:Edad[:\\s]*|Paciente de\\s*)(\\d{1,3})(?:\\s*a[nñ]os)?")
+        m = Pattern.compile("(?i)(?:Edad[:\\s]*|Paciente de\\s*|age[:\\s]*)(\\d{1,3})(?:\\s*a[nñ]os|\\s*years)?")
                 .matcher(text);
+
         if (m.find()) data.put("age", Integer.parseInt(m.group(1)));
 
         // 2) Género
-        m = Pattern.compile("(?i)(?:Sexo|G[eé]nero)[:\\s]*(Masculino|Femenino)")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:Sexo|G[eé]nero|gender)[:\\s]*(Masculino|Femenino|Male|Female)")
+        .matcher(text);
         if (m.find()) {
-            data.put("gender", m.group(1).equalsIgnoreCase("Masculino") ? 1 : 0);
+            data.put("gender", m.group(1).toLowerCase().startsWith("m") ? 1 : 0);
         }
 
+
         // 3) Presión arterial sistólica
-        m = Pattern.compile("(?i)Presi[oó]n arterial[^\\d]*(\\d{2,3})")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:Presi[oó]n arterial|resting ?BP)[^\\d]*(\\d{2,3})")
+        .matcher(text);
+
         if (m.find()) data.put("restingBP", Integer.parseInt(m.group(1)));
 
         // 4) Colesterol total
-        m = Pattern.compile("(?i)(?:Colesterol(?: sérico total)?)[^\\d]*(\\d{2,3})")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:Colesterol(?: sérico total)?|serumcholesterol)[^\\d]*(\\d{2,3})")
+        .matcher(text);
+
         if (m.find()) data.put("serumcholestrol", Integer.parseInt(m.group(1)));
 
         // 5) Frecuencia cardíaca máxima
-        m = Pattern.compile("(?i)(?:Frecuencia cardíaca máxima|ritmo máximo)[^\\d]*(\\d{2,3})")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:Frecuencia cardíaca máxima|ritmo máximo|max(?:imum)?\\s*heartrate|maxHeartRate)[^\\d]*(\\d{2,3})")
+        .matcher(text);
+
         if (m.find()) data.put("maxheartrate", Integer.parseInt(m.group(1)));
 
         // 6) Oldpeak (depresión ST)
-        m = Pattern.compile("(?i)(?:Oldpeak|depresión(?: del segmento ST)?)[^\\d]*(\\d+\\.?\\d*)")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:Oldpeak|depresión(?: del segmento ST)?|oldpeak?)[^\\d]*(\\d+\\.?\\d*)")
+        .matcher(text);
+
         if (m.find()) data.put("oldpeak", Double.parseDouble(m.group(1)));
 
         // 7) Angina inducida por ejercicio
-        m = Pattern.compile("(?i)(?:Exercise induced angina|Angina inducida por el ejercicio)[:\\s]*(S[ií]|No)")
+        m = Pattern.compile("(?i)(?:Exercise induced angina|Angina inducida por el ejercicio|exerciseAngina)[:\\s]*(S[ií]|No|Yes|Y|N)")
                 .matcher(text);
         if (m.find()) {
-            data.put("exerciseangia", m.group(1).toLowerCase().startsWith("s") ? 1 : 0);
+            String val = m.group(1).toLowerCase();
+            data.put("exerciseangia", (val.startsWith("s") || val.startsWith("y")) ? 1 : 0);
         } else if (text.toLowerCase().matches(".*angina.*(ejercicio|esfuerzo).*")) {
             data.put("exerciseangia", 1);
         }
 
+
         // 8) Chest pain type
-        m = Pattern.compile("(?i)(?:Chest pain type|dolor tor[aá]cico)[^\\d]*([0-3])")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:Chest pain type|dolor tor[aá]cico|chestPainType)[^\\d]*([0-3])")
+        .matcher(text);
+
         if (m.find()) data.put("chestpain", Integer.parseInt(m.group(1)));
 
         // 9) Resting ECG results
-        m = Pattern.compile("(?i)(?:electrocardiograma en reposo|ECG en reposo|Resting electrocardiogram)[^\\d]*(?:tipo)?\\s*([0-2])")
-                .matcher(text);
+        m = Pattern.compile("(?i)(?:electrocardiograma en reposo|ECG en reposo|Resting electrocardiogram|restingECG|Resting electrocardiogram results)[^\\d]*(?:tipo)?\\s*([0-2])")
+        .matcher(text);
+
         if (m.find()) data.put("restingrelectro", Integer.parseInt(m.group(1)));
 
         // 10) Slope
         int slopeVal = -1;
 
         // 10.a) Slope: 2
-        Matcher m1 = Pattern.compile("(?i)\\bSlope\\s*[:：\\-]?\\s*([1-3])\\b")
-                        .matcher(text);
+        Matcher m1 = Pattern.compile("(?i)(?:\\bSlope|slope)\\s*[:：\\-]?\\s*([1-3])\\b").matcher(text);
+
         if (m1.find()) {
             slopeVal = Integer.parseInt(m1.group(1));
         }
@@ -496,8 +506,9 @@ public class AIService {
 
         
         // 11) Número de vasos principales
-        m = Pattern.compile("(?i)\\b(\\d|uno|dos|tres)\\s+(vasos principales|number of major vessels)")
+        m = Pattern.compile("(?i)\\b(\\d|uno|dos|tres)\\s+(vasos principales|number of major vessels|major vessels|número de vasos principales|noofmajorvessels|numMajorVessels)")
                 .matcher(text);
+
         if (m.find()) {
             String g = m.group(1).toLowerCase();
             int v = switch (g) {
@@ -511,12 +522,13 @@ public class AIService {
 
         // 12) Azúcar en ayunas (fastingbloodsugar)
         m = Pattern.compile("(?i)(?:Az[uú]car en (?:sangre )?en ayunas|Az[uú]car en ayunas|fasting blood sugar|fastingbloodsugar)\\s*[:\\-]?\\s*([01])")
-                .matcher(text);
+        .matcher(text);
         if (m.find()) {
             data.put("fastingbloodsugar", Integer.parseInt(m.group(1)));
         } else if (text.toLowerCase().contains("glucemia en ayunas")) {
             data.put("fastingbloodsugar", 1);
         }
+
 
         // Rellenar el resto con 0
         for (String key : FEATURE_KEYS) {
@@ -615,7 +627,7 @@ public class AIService {
     // Al final de AIService.java
 public static void main(String[] args) {
     AIService svc = new AIService();
-    String ejemplo ="genero: femenino"
+    String ejemplo ="gender: masculino"
         + "age: 68 años\n"
         + "restingBP: 165/95 mmHg\n"
         + "serumcholesterol: 300 mg/dl\n"
@@ -630,22 +642,22 @@ public static void main(String[] args) {
     Map<String,Object> datos = svc.parsePatientData(ejemplo);
     System.out.println("Resultado de parsePatientData:\n" + datos);
 
-        String ocrText = "Paciente: Juan Pérez, Edad: 55, Colesterol Total: 240 mg/dL, Presión Arterial: 145/92 mmHg. ECG muestra ligera hipertrofia ventricular izquierda.";
-        String imageDesc = "Imagen de un electrocardiograma (ECG) con anotaciones de ondas P, QRS y T. No se observan arritmias evidentes pero sí signos de HVI.";
-        String freeText = "El paciente reporta fatiga ocasional y disnea de esfuerzo leve. Niega dolor torácico. Fumador de 10 cigarrillos/día por 20 años.";
+//         String ocrText = "Paciente: Juan Pérez, Edad: 55, Colesterol Total: 240 mg/dL, Presión Arterial: 145/92 mmHg. ECG muestra ligera hipertrofia ventricular izquierda.";
+//         String imageDesc = "Imagen de un electrocardiograma (ECG) con anotaciones de ondas P, QRS y T. No se observan arritmias evidentes pero sí signos de HVI.";
+//         String freeText = "El paciente reporta fatiga ocasional y disnea de esfuerzo leve. Niega dolor torácico. Fumador de 10 cigarrillos/día por 20 años.";
 
-        ocrText="";
-        imageDesc="";
-        freeText="";
-        try {
-            String result = svc.analyzeWithGeminiFullContext(ocrText, imageDesc, freeText);
-            System.out.println("\n--- RESPUESTA DE GEMINI ---");
-            System.out.println(result);
-        } catch (Exception e) {
-            System.err.println("Error al analizar con Gemini: " + e.getMessage());
-        }
+//         ocrText="";
+//         imageDesc="";
+//         freeText="";
+//         try {
+//             String result = svc.analyzeWithGeminiFullContext(ocrText, imageDesc, freeText);
+//             System.out.println("\n--- RESPUESTA DE GEMINI ---");
+//             System.out.println(result);
+//         } catch (Exception e) {
+//             System.err.println("Error al analizar con Gemini: " + e.getMessage());
+//         }
 
-}
+// }
 
 /* 
 "genero: femenino"
@@ -661,6 +673,20 @@ public static void main(String[] args) {
         + "Slope: 2\n"
         + "Number of major vessels: 2\n";
 
+"gender: femenino"
+        + "age: 68 años\n"
+        + "restingBP: 165/95 mmHg\n"
+        + "serumcholesterol: 300 mg/dl\n"
+        + "maxHeartRate: 110\n"
+        + "fastingBloodSugar: 1\n"
+        + "chestPainType: 2\n"
+        + "restingECG: 1\n"
+        + "exerciseAngina: Sí\n"
+        + "oldpeak: 4.2\n"
+        + "slope: 2\n"
+        + "numMajorVessels: 2\n";
+
+
 "    "Paciente de 68 años, sexo femenino, con presión arterial en reposo de 165 mm Hg "
   + "y colesterol sérico total de 300 mg/dL. Su frecuencia cardíaca máxima alcanzada fue de 110 lpm. "
   + "Presenta depresión del segmento ST (“oldpeak”) de 4.2, lo que sugiere isquemia inducida por el ejercicio, "
@@ -671,4 +697,5 @@ public static void main(String[] args) {
   + "Azúcar en sangre en ayunas: 1";
 */
    
+    }
 }
