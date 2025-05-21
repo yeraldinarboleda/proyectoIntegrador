@@ -2,11 +2,14 @@ package proymodpredictivoia.demo.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.cloud.vision.v1.*;
 import com.google.protobuf.ByteString;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
+
 import java.util.regex.*;
 import java.util.Map;
 import java.util.HashMap;
@@ -50,26 +53,24 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
 //import com.opencsv.CSVWriter;
 
 @Service
 public class AIService {
 
-
-    private static final List<String> FEATURE_KEYS = Arrays.asList(
-        "age",
-        "gender",
-        "chestpain",
-        "restingBP",
-        "serumcholestrol",
-        "fastingbloodsugar",
-        "restingrelectro",
-        "maxheartrate",
-        "exerciseangia",
-        "oldpeak",
-        "slope",
-        "noofmajorvessels"
+    private static final List<String> FEATURE_KEYS = List.of(
+        "age","restingBP","serumcholestrol","maxheartrate","oldpeak",
+        "noofmajorvessels","gender","fastingbloodsugar","exerciseangia",
+        "chestpain","restingrelectro","slope"
     );
+
+    // Cliente a tu micro-servicio Flask
+    private final WebClient predictClient = WebClient.create("http://localhost:5000");
 
     @Value("${API_GEMINI_KEY}")
     private String geminiApiKey;
@@ -250,7 +251,32 @@ public class AIService {
     }
     
     
-
+  /**
+   * Sobrecarga para PDF que escribe directamente en el OutputStream dado.
+   */
+    public void generatePDF(String content, OutputStream os) throws Exception {
+        Document document = new Document();
+        PdfWriter.getInstance(document, os);
+        document.open();
+        String formatted = content.replace("<br>", "\n").replace("<br><br>", "\n\n");
+        Font normal = new Font(FontFamily.HELVETICA, 12, Font.NORMAL);
+        Font bold   = new Font(FontFamily.HELVETICA, 12, Font.BOLD);
+        Pattern p = Pattern.compile("(?s)(.*?)<b>(.*?)</b>");
+        Matcher m = p.matcher(formatted);
+        Paragraph para = new Paragraph();
+        int last=0;
+        while(m.find()){
+        String before = m.group(1);
+        if(!before.isEmpty()) para.add(new Chunk(before, normal));
+        para.add(new Chunk(m.group(2), bold));
+        last = m.end();
+        }
+        if(last < formatted.length()){
+        para.add(new Chunk(formatted.substring(last), normal));
+        }
+        document.add(para);
+        document.close();
+    }
 
     public void generateCSV(String content, String outputPath) throws IOException {
         try (BufferedWriter csvWriter = new BufferedWriter(
@@ -270,6 +296,20 @@ public class AIService {
         }
     }
     
+    /**
+   * Sobrecarga para CSV que escribe directamente en el OutputStream dado.
+   */
+    public void generateCSV(String content, OutputStream os) throws IOException {
+    try (BufferedWriter csvWriter = new BufferedWriter(
+            new OutputStreamWriter(os, StandardCharsets.UTF_8))) {
+        csvWriter.write("\"Sección\",\"Contenido\"\n");
+        String formatted = content.replace("<br>", "\n").replace("<br><br>", "\n\n");
+        String plain     = formatted.replaceAll("<[^>]+>", "");
+        String escaped   = plain.replace("\"", "\"\"");
+        csvWriter.write("\"Resultado de la IA\",\"" + escaped + "\"\n");
+        csvWriter.flush();
+    }
+    }
 
     
     public void generateExcel(String content, String outputPath) throws IOException {
@@ -310,6 +350,33 @@ public class AIService {
         workbook.close();
     }
 
+
+
+  /**
+   * Sobrecarga para Excel que escribe directamente en el OutputStream dado.
+   */
+  public void generateExcel(String content, OutputStream os) throws IOException {
+    Workbook workbook = new XSSFWorkbook();
+    Sheet sheet = workbook.createSheet("Resultado IA");
+    CellStyle wrap = workbook.createCellStyle();
+    wrap.setWrapText(true);
+
+    String formatted = content.replace("<br>", "\n").replace("<br><br>", "\n\n")
+                              .replaceAll("<[^>]+>", "");
+    Row hdr = sheet.createRow(0); hdr.createCell(0).setCellValue("Resultado");
+    Row row = sheet.createRow(1);
+    Cell cell = row.createCell(0);
+    cell.setCellValue(formatted);
+    cell.setCellStyle(wrap);
+    row.setHeight((short)-1);
+    sheet.autoSizeColumn(0);
+
+    workbook.write(os);
+    workbook.close();
+  }
+
+
+
     public String getModelPredictionFromAPI(String jsonPaciente) {
         try {
             WebClient webClient = WebClient.create();
@@ -328,144 +395,280 @@ public class AIService {
         }
     }
     
-
     
     /**
      * Detecta en el texto los campos que necesita el modelo
      * y los convierte en un Map listo para pasar como JSON a /predict
-     */
-    private Map<String,Object> parsePatientData(String text) {
-        Map<String,Object> data = new HashMap<>();
+     *
 
+     * Extrae del texto todas las características necesarias para el modelo
+     */
+    public Map<String,Object> parsePatientData(String text) {
+        //text = text.replace("\n", " ").replace("\r", " ").replace("\t", " ");
+        System.out.println("TEXTO A PARSEAR: " + text);
+        Map<String,Object> data = new HashMap<>();
         Matcher m;
+
         // 1) Edad
-        m = Pattern.compile("(?i)\\bEdad[:\\s]*(\\d{1,3})\\b").matcher(text);
+        m = Pattern.compile("(?i)(?:Edad[:\\s]*|Paciente de\\s*)(\\d{1,3})(?:\\s*a[nñ]os)?")
+                .matcher(text);
         if (m.find()) data.put("age", Integer.parseInt(m.group(1)));
 
-        // 2) Género (0=Femenino, 1=Masculino)
-        m = Pattern.compile("(?i)G[eé]nero[:\\s]*(Masculino|Femenino)").matcher(text);
+        // 2) Género
+        m = Pattern.compile("(?i)(?:Sexo|G[eé]nero)[:\\s]*(Masculino|Femenino)")
+                .matcher(text);
         if (m.find()) {
-            String g = m.group(1).toLowerCase();
-            data.put("gender", g.startsWith("m") ? 1 : 0);
+            data.put("gender", m.group(1).equalsIgnoreCase("Masculino") ? 1 : 0);
         }
 
-        // 3) Tipo de dolor torácico / chestpain (0–3)
-        m = Pattern.compile("(?i)(?:Chest pain type|Tipo de dolor tor[aá]cico)[:\\s]*(\\d)").matcher(text);
-        if (m.find()) data.put("chestpain", Integer.parseInt(m.group(1)));
-
-        // 4) Presión arterial de reposo (sistólica) restingBP
-        m = Pattern.compile("(?i)Presi[oó]n arterial[:\\s]*(\\d{2,3})/(\\d{2,3})").matcher(text);
+        // 3) Presión arterial sistólica
+        m = Pattern.compile("(?i)Presi[oó]n arterial[^\\d]*(\\d{2,3})")
+                .matcher(text);
         if (m.find()) data.put("restingBP", Integer.parseInt(m.group(1)));
 
-        // 5) Colesterol sérico total serumcholestrol
-        m = Pattern.compile("(?i)(?:Colesterol total|Serum cholesterol)[:\\s]*(\\d{2,3})").matcher(text);
+        // 4) Colesterol total
+        m = Pattern.compile("(?i)(?:Colesterol(?: sérico total)?)[^\\d]*(\\d{2,3})")
+                .matcher(text);
         if (m.find()) data.put("serumcholestrol", Integer.parseInt(m.group(1)));
 
-        // 6) Azúcar en ayunas fastingbloodsugar (0/1)
-        m = Pattern.compile("(?i)(?:Az[uú]car en sangre en ayunas|Fasting blood sugar)[:\\s]*(\\d)").matcher(text);
-        if (m.find()) data.put("fastingbloodsugar", Integer.parseInt(m.group(1)));
-
-        // 7) Resultados ECG en reposo restingrelectro (0–2)
-        m = Pattern.compile("(?i)(?:Resting electrocardiogram.*?results|Electrocardiograma en reposo)[:\\s]*(\\d)").matcher(text);
-        if (m.find()) data.put("restingrelectro", Integer.parseInt(m.group(1)));
-
-        // 8) FC máxima maxheartrate
-        m = Pattern.compile("(?i)(?:Maximum heart rate achieved|Frecuencia card[ií]aca m[aá]xima)[:\\s]*(\\d{2,3})").matcher(text);
+        // 5) Frecuencia cardíaca máxima
+        m = Pattern.compile("(?i)(?:Frecuencia cardíaca máxima|ritmo máximo)[^\\d]*(\\d{2,3})")
+                .matcher(text);
         if (m.find()) data.put("maxheartrate", Integer.parseInt(m.group(1)));
 
-        // 9) Angina inducida por ejercicio exerciseangia (0=No,1=Sí)
-        m = Pattern.compile("(?i)(?:Exercise induced angina|Angina inducida por el ejercicio)[:\\s]*(S[ií]|No)").matcher(text);
-        if (m.find()) data.put("exerciseangia", m.group(1).toLowerCase().startsWith("s") ? 1 : 0);
-
-        // 10) Oldpeak (depresión ST) oldpeak (float)
-        m = Pattern.compile("(?i)(?:Oldpeak|ST)[:\\s]*(\\d+\\.?\\d*)").matcher(text);
+        // 6) Oldpeak (depresión ST)
+        m = Pattern.compile("(?i)(?:Oldpeak|depresión(?: del segmento ST)?)[^\\d]*(\\d+\\.?\\d*)")
+                .matcher(text);
         if (m.find()) data.put("oldpeak", Double.parseDouble(m.group(1)));
 
-        // 11) Slope del segmento ST (1–3)
-        m = Pattern.compile("(?i)(?:Slope of the peak exercise ST segment|Slope)[:\\s]*(\\d)").matcher(text);
-        if (m.find()) data.put("slope", Integer.parseInt(m.group(1)));
+        // 7) Angina inducida por ejercicio
+        m = Pattern.compile("(?i)(?:Exercise induced angina|Angina inducida por el ejercicio)[:\\s]*(S[ií]|No)")
+                .matcher(text);
+        if (m.find()) {
+            data.put("exerciseangia", m.group(1).toLowerCase().startsWith("s") ? 1 : 0);
+        } else if (text.toLowerCase().matches(".*angina.*(ejercicio|esfuerzo).*")) {
+            data.put("exerciseangia", 1);
+        }
 
-        // 12) Número de vasos principales noofmajorvessels (0–3)
-        m = Pattern.compile("(?i)(?:Number of major vessels|Número de vasos principales)[:\\s]*(\\d)").matcher(text);
-        if (m.find()) data.put("noofmajorvessels", Integer.parseInt(m.group(1)));
+        // 8) Chest pain type
+        m = Pattern.compile("(?i)(?:Chest pain type|dolor tor[aá]cico)[^\\d]*([0-3])")
+                .matcher(text);
+        if (m.find()) data.put("chestpain", Integer.parseInt(m.group(1)));
 
-        // --- Rellenar con 0 cualquiera que no se haya detectado
+        // 9) Resting ECG results
+        m = Pattern.compile("(?i)(?:electrocardiograma en reposo|ECG en reposo|Resting electrocardiogram)[^\\d]*(?:tipo)?\\s*([0-2])")
+                .matcher(text);
+        if (m.find()) data.put("restingrelectro", Integer.parseInt(m.group(1)));
+
+        // 10) Slope
+        int slopeVal = -1;
+
+        // 10.a) Slope: 2
+        Matcher m1 = Pattern.compile("(?i)\\bSlope\\s*[:：\\-]?\\s*([1-3])\\b")
+                        .matcher(text);
+        if (m1.find()) {
+            slopeVal = Integer.parseInt(m1.group(1));
+        }
+
+        // 10.b) pendiente plana (código 2) o flat (code 2)
+        if (slopeVal < 0) {
+            Matcher m2 = Pattern.compile("(?i)(?:plana|flat)\\s*\\(c[oó]digo\\s*([1-3])\\)")
+                                .matcher(text);
+            if (m2.find()) {
+                slopeVal = Integer.parseInt(m2.group(1));
+            }
+        }
+
+        // 10.c) pendiente … código 2
+        if (slopeVal < 0) {
+            Matcher m3 = Pattern.compile("(?i)pendiente[\\s\\w]*?c[oó]digo\\s*([1-3])\\b")
+                                .matcher(text);
+            if (m3.find()) {
+                slopeVal = Integer.parseInt(m3.group(1));
+            }
+        }
+
+        // Finalmente, si encontramos un valor válido, lo guardamos
+        if (slopeVal >= 0) {
+            System.out.println("DEBUG SLOPE ENCONTRADO: " + slopeVal);
+            data.put("slope", slopeVal);
+        }
+
+        
+        // 11) Número de vasos principales
+        m = Pattern.compile("(?i)\\b(\\d|uno|dos|tres)\\s+(vasos principales|number of major vessels)")
+                .matcher(text);
+        if (m.find()) {
+            String g = m.group(1).toLowerCase();
+            int v = switch (g) {
+                case "uno"  -> 1;
+                case "dos"  -> 2;
+                case "tres" -> 3;
+                default     -> Integer.parseInt(g);
+            };
+            data.put("noofmajorvessels", v);
+        }
+
+        // 12) Azúcar en ayunas (fastingbloodsugar)
+        m = Pattern.compile("(?i)(?:Az[uú]car en (?:sangre )?en ayunas|Az[uú]car en ayunas|fasting blood sugar|fastingbloodsugar)\\s*[:\\-]?\\s*([01])")
+                .matcher(text);
+        if (m.find()) {
+            data.put("fastingbloodsugar", Integer.parseInt(m.group(1)));
+        } else if (text.toLowerCase().contains("glucemia en ayunas")) {
+            data.put("fastingbloodsugar", 1);
+        }
+
+        // Rellenar el resto con 0
         for (String key : FEATURE_KEYS) {
             data.putIfAbsent(key, 0);
         }
 
+        System.out.println("DEBUG: parsePatientData → " + data);
         return data;
     }
 
-    private final WebClient predictClient = WebClient.create("http://localhost:5000");
-    private PredictResponse callPredictiveModel(Map<String,Object> patientData) {
-        // --- imprime el JSON que vas a enviar
+
+
+
+
+    /** 2) Invoca a tu modelo Flask y devuelve la respuesta */
+    public PredictResponse callPredictiveModel(Map<String,Object> patientData) {
         System.out.println("DEBUG: enviando a /predict → " + patientData);
-    
         try {
-          return predictClient.post()
-              .uri("/predict")
-              .bodyValue(patientData)
-              .retrieve()
-              .bodyToMono(PredictResponse.class)
-              .block();
+            return predictClient.post()
+                .uri("/predict")
+                .bodyValue(patientData)
+                .retrieve()
+                .bodyToMono(PredictResponse.class)
+                .block();
         } catch (WebClientResponseException e) {
-          // imprime el cuerpo de la respuesta de error
-        System.err.println("ERROR 400 from /predict: " + e.getResponseBodyAsString());
-        throw e;
+            System.err.println("ERROR al llamar a /predict: " + e.getResponseBodyAsString());
+            throw e;
         }
     }
-    
 
+
+
+    /**
+     * 3) Construye el prompt uniendo OCR, descripción de imagen,
+     *    JSON de paciente + salida del modelo, y lo envía a Gemini.
+     */
     public String analyzeWithGeminiFullContext(
-        String ocrText,
-        String imageDesc,
-        String patientDataText
+            String ocrText,
+            String imageDesc,
+            String freeText
     ) throws IOException {
-    
-      // 1) Parsear los datos útiles
-        Map<String,Object> patientData = parsePatientData(patientDataText);
-    
-      // 2) Llamar al RF micro-servicio
-        PredictResponse pr = callPredictiveModel(patientData);
-    
-      // 3) Construir prompt
-        StringBuilder prompt = new StringBuilder();
-            prompt.append("Eres un cardiólogo experto el cual basa su respuesta en un modelo predictivo de la base de datos de datos de pacientes, y debes analizar la siguiente información para dar un diagnostico final:\n\n")
-            .append("Datos extraídos:\n")
-            .append(ocrText).append("\n\n")
-            .append("Descripción de imagen:\n")
-            .append(imageDesc).append("\n\n")
-            .append("Datos del paciente (JSON):\n")
-            .append(patientData).append("\n\n")
-            .append("Predicción modelo:\n")
-            .append(String.format("Probabilidad de enfermedad cardiovascular: %.2f%%\n", pr.probability*100))
-            .append("Top características:\n");
-      for (List<Object> feat : pr.top_features) {
-        prompt.append("- ").append(feat.get(0)).append(": ").append(feat.get(1)).append("\n");
-      }
-      prompt.append("\nCon base en toda esta información, como cardiólogo experto ...");
-    
-      // 4) Enviar a Gemini
-      String escaped = prompt.toString().replace("\"","\\\"");
-      String body = String.format(
-        "{\"contents\":[{\"parts\":[{\"text\":\"%s\"}]}]}",
-        escaped
-      );
-    
-      String geminiResp = WebClient.create()
-          .post()
-          .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key="+geminiApiKey)
-          .header("Content-Type","application/json")
-          .bodyValue(body)
-          .retrieve()
-          .bodyToMono(String.class)
-          .block();
-    
-      // parsea y devuelve solo el texto
-      JsonNode root = new ObjectMapper().readTree(geminiResp);
-      return root.at("/candidates/0/content/parts/0/text").asText();
+        // 1) Parsear datos y llamar al microservicio predictivo
+        Map<String,Object> patientData = parsePatientData(freeText + "\n" + ocrText);
+        PredictResponse pr       = callPredictiveModel(patientData);
+
+        // 2) Preparar el prompt
+        ObjectMapper om = new ObjectMapper();
+        String patientJson = om.writerWithDefaultPrettyPrinter()
+                            .writeValueAsString(patientData);
+
+        StringBuilder p = new StringBuilder()
+            .append("Eres un cardiólogo experto: usa SOLO los datos clínicos y la predicción ")
+            .append("del modelo para diagnosticar. No inventes información.\n\n")
+            .append("OCR:\n").append(ocrText).append("\n\n")
+            .append("Imagen:\n").append(imageDesc).append("\n\n")
+            .append("Datos (JSON):\n").append(patientJson).append("\n\n")
+            .append("Predicción:\n")
+            .append(String.format(" Probabilidad: %.2f%%\n", pr.getProbability()*100))
+            .append(" Top features:\n");
+        for (List<Object> feat : pr.getTop_features()) {
+            p.append("  - ").append(feat.get(0)).append(": ").append(feat.get(1)).append("\n");
+        }
+        p.append("\nComo cardiólogo, responde:\n")
+        .append(" a) Diagnóstico.\n")
+        .append(" b) Factores de riesgo.\n")
+        .append(" c) Recomendaciones.\n")
+        .append(" d) Consecuencias de no seguirlas.");
+
+        // 3) Construir JSON para generateContent
+        ObjectNode root    = om.createObjectNode();
+        ArrayNode contents = root.putArray("contents");
+        ObjectNode item    = contents.addObject();
+        ArrayNode parts    = item.putArray("parts");
+        parts.addObject().put("text", p.toString());
+        String bodyJson = om.writeValueAsString(root);
+
+        System.out.println("=== GEMINI REQUEST ===\n" + bodyJson);
+
+        // 4) Llamar al mismo endpoint que usaste en Python:
+        String raw = WebClient.create()
+            .post()
+            .uri("https://generativelanguage.googleapis.com/v1beta/models/"
+                + "gemini-2.0-flash:generateContent?key=" + geminiApiKey)
+            .header("Content-Type", "application/json")
+            .bodyValue(bodyJson)
+            .retrieve()
+            .bodyToMono(String.class)
+            .block();
+
+        // 5) Parsear y devolver solo el texto
+        JsonNode resp = om.readTree(raw);
+        return resp.at("/candidates/0/content/parts/0/text").asText();
     }
-    
-    
+
+
+    // Al final de AIService.java
+public static void main(String[] args) {
+    AIService svc = new AIService();
+    String ejemplo ="genero: femenino"
+        + "age: 68 años\n"
+        + "restingBP: 165/95 mmHg\n"
+        + "serumcholesterol: 300 mg/dl\n"
+        + "maxHeartRate: 110\n"
+        + "fastingBloodSugar: 1\n"
+        + "chestPainType: 2\n"
+        + "restingECG: 1\n"
+        + "exerciseAngina: Sí\n"
+        + "oldpeak: 4.2\n"
+        + "slope: 2\n"
+        + "numMajorVessels: 2\n";
+    Map<String,Object> datos = svc.parsePatientData(ejemplo);
+    System.out.println("Resultado de parsePatientData:\n" + datos);
+
+        String ocrText = "Paciente: Juan Pérez, Edad: 55, Colesterol Total: 240 mg/dL, Presión Arterial: 145/92 mmHg. ECG muestra ligera hipertrofia ventricular izquierda.";
+        String imageDesc = "Imagen de un electrocardiograma (ECG) con anotaciones de ondas P, QRS y T. No se observan arritmias evidentes pero sí signos de HVI.";
+        String freeText = "El paciente reporta fatiga ocasional y disnea de esfuerzo leve. Niega dolor torácico. Fumador de 10 cigarrillos/día por 20 años.";
+
+        ocrText="";
+        imageDesc="";
+        freeText="";
+        try {
+            String result = svc.analyzeWithGeminiFullContext(ocrText, imageDesc, freeText);
+            System.out.println("\n--- RESPUESTA DE GEMINI ---");
+            System.out.println(result);
+        } catch (Exception e) {
+            System.err.println("Error al analizar con Gemini: " + e.getMessage());
+        }
+
+}
+
+/* 
+"genero: femenino"
+        + "Edad: 68 años\n"
+        + "Presión arterial: 165/95 mmHg\n"
+        + "Colesterol total: 300 mg/dl\n"
+        + "Frecuencia cardíaca máxima: 110\n"
+        + "Azúcar en ayunas: 1\n"
+        + "Chest pain type: 2\n"
+        + "Resting electrocardiogram results: 1\n"
+        + "Exercise induced angina: Sí\n"
+        + "Oldpeak: 4.2\n"
+        + "Slope: 2\n"
+        + "Number of major vessels: 2\n";
+
+"    "Paciente de 68 años, sexo femenino, con presión arterial en reposo de 165 mm Hg "
+  + "y colesterol sérico total de 300 mg/dL. Su frecuencia cardíaca máxima alcanzada fue de 110 lpm. "
+  + "Presenta depresión del segmento ST (“oldpeak”) de 4.2, lo que sugiere isquemia inducida por el ejercicio, "
+  + "ya que además tiene angina durante el esfuerzo. El tipo de dolor torácico corresponde al código 2 "
+  + "(dolor no anginoso). Los resultados del electrocardiograma en reposo muestran alteraciones de tipo 1 "
+  + "(ST–T anormal). La pendiente del segmento ST durante el ejercicio es plana (código 2). "
+  + "Se han identificado dos vasos principales afectados. "
+  + "Azúcar en sangre en ayunas: 1";
+*/
+   
 }
