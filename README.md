@@ -1,8 +1,8 @@
-# iniciar backend  
+# iniciar backend
 cd demo
-./mvnw clean install  
+./mvnw clean install
 docker compose up -d  
-./mvnw spring-boot:run  
+./mvnw spring-boot:run
 
 
 # pruebas backend 
@@ -12,7 +12,7 @@ http://localhost:8081/api/ai/generate?text=
 # iniciar frontend  
 cd my-app  
 npm install  
-npm start  
+npm start
 http://localhost:3000  
 
 # ARQUITECTURA BACKEND  

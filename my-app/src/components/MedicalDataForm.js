@@ -11,11 +11,19 @@ const MedicalDataForm = () => {
     weight: "",
     height: "",
     bmi: "",
+    restingBP: "",
+    serumCholesterol: "",
+    maxHeartRate: "",
+    fastingBloodSugar: "",
+    oldpeak: "",
+    slope: "",
+    noOfMajorVessels: "",
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Calcular automáticamente el BMI
   useEffect(() => {
     const weight = parseFloat(formData.weight);
     const height = parseFloat(formData.height);
@@ -34,7 +42,10 @@ const MedicalDataForm = () => {
   const validateForm = () => {
     const newErrors = {};
     Object.keys(formData).forEach((key) => {
-      if (!formData[key] && key !== "bmi") {
+      if (
+        formData[key] === "" &&
+        key !== "bmi" // BMI se calcula automáticamente
+      ) {
         newErrors[key] = "Este campo es obligatorio";
       }
     });
@@ -51,7 +62,6 @@ const MedicalDataForm = () => {
 
     setLoading(true);
     try {
-      // Convertir los valores numéricos
       const dataToSend = {
         ...formData,
         waistCircumference: parseFloat(formData.waistCircumference),
@@ -61,6 +71,13 @@ const MedicalDataForm = () => {
         weight: parseFloat(formData.weight),
         height: parseFloat(formData.height),
         bmi: parseFloat(formData.bmi),
+        restingBP: parseInt(formData.restingBP),
+        serumCholesterol: parseInt(formData.serumCholesterol),
+        maxHeartRate: parseInt(formData.maxHeartRate),
+        fastingBloodSugar: parseInt(formData.fastingBloodSugar),
+        oldpeak: parseFloat(formData.oldpeak),
+        slope: parseInt(formData.slope),
+        noOfMajorVessels: parseInt(formData.noOfMajorVessels),
       };
 
       const response = await sendMedicalData(dataToSend);
@@ -74,6 +91,13 @@ const MedicalDataForm = () => {
         weight: "",
         height: "",
         bmi: "",
+        restingBP: "",
+        serumCholesterol: "",
+        maxHeartRate: "",
+        fastingBloodSugar: "",
+        oldpeak: "",
+        slope: "",
+        noOfMajorVessels: "",
       });
     } catch (error) {
       alert("Ocurrió un error al guardar los datos");
@@ -83,18 +107,27 @@ const MedicalDataForm = () => {
     }
   };
 
+  const fields = [
+    { label: "Circunferencia de la cintura (cm)", name: "waistCircumference" },
+    { label: "Presión Arterial Sistólica (mmHg)", name: "systolicPressure" },
+    { label: "Presión Arterial Diastólica (mmHg)", name: "diastolicPressure" },
+    { label: "Frecuencia Cardíaca (bpm)", name: "heartRate" },
+    { label: "Peso (kg)", name: "weight", step: "0.1" },
+    { label: "Altura (cm)", name: "height", step: "0.1" },
+    { label: "Presión Arterial en Reposo", name: "restingBP" },
+    { label: "Colesterol Sérico", name: "serumCholesterol" },
+    { label: "Frecuencia Cardíaca Máxima", name: "maxHeartRate" },
+    { label: "Azúcar en Sangre en Ayunas (mg/dL)", name: "fastingBloodSugar" },
+    { label: "Oldpeak (depresión del ST)", name: "oldpeak", step: "0.1" },
+    { label: "Pendiente del ST", name: "slope" },
+    { label: "Número de Vasos Principales Afectados", name: "noOfMajorVessels" },
+  ];
+
   return (
     <div className="form-container">
       <h2>Datos Médicos</h2>
       <form onSubmit={handleSubmit} className="medical-form">
-        {[
-          { label: "Circunferencia de la cintura (cm)", name: "waistCircumference" },
-          { label: "Presión Arterial Sistólica (mmHg)", name: "systolicPressure" },
-          { label: "Presión Arterial Diastólica (mmHg)", name: "diastolicPressure" },
-          { label: "Frecuencia Cardíaca (bpm)", name: "heartRate" },
-          { label: "Peso (kg)", name: "weight", step: "0.1" },
-          { label: "Altura (cm)", name: "height", step: "0.1" },
-        ].map((field) => (
+        {fields.map((field) => (
           <div className="input-group" key={field.name}>
             <label>{field.label}:</label>
             <input
@@ -105,7 +138,9 @@ const MedicalDataForm = () => {
               step={field.step || "1"}
               required
             />
-            {errors[field.name] && <p className="error-message">{errors[field.name]}</p>}
+            {errors[field.name] && (
+              <p className="error-message">{errors[field.name]}</p>
+            )}
           </div>
         ))}
 
