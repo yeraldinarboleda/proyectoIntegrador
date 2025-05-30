@@ -6,10 +6,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import java.util.List;
+import java.util.Optional;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -66,5 +75,48 @@ public class CardioResultsController {
         }
 
         return savedPaths.toString();
+    }
+
+    // ✅ READ - Obtener todos
+    @GetMapping
+    public List<CardioResults> getAllCardioResults() {
+        return cardioResultsRepository.findAll();
+    }
+
+    // ✅ READ - Obtener uno por ID
+    @GetMapping("/{id}")
+    public ResponseEntity<CardioResults> getCardioResultById(@PathVariable Long id) {
+        Optional<CardioResults> result = cardioResultsRepository.findById(id);
+        return result.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // ✅ UPDATE - Actualizar resultado por ID
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCardioResult(
+            @PathVariable Long id,
+            @RequestBody CardioResults updatedResult
+    ) {
+        Optional<CardioResults> optional = cardioResultsRepository.findById(id);
+        if (optional.isEmpty()) return ResponseEntity.notFound().build();
+
+        CardioResults result = optional.get();
+        result.setElectrocardiogram(updatedResult.getElectrocardiogram());
+        result.setEchocardiogram(updatedResult.getEchocardiogram());
+        result.setChestPainType(updatedResult.getChestPainType());
+        result.setRestingECG(updatedResult.getRestingECG());
+        result.setExerciseAngina(updatedResult.getExerciseAngina());
+
+        cardioResultsRepository.save(result);
+        return ResponseEntity.ok("Actualizado correctamente.");
+    }
+
+    // ✅ DELETE - Eliminar por ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCardioResult(@PathVariable Long id) {
+        if (!cardioResultsRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        cardioResultsRepository.deleteById(id);
+        return ResponseEntity.ok("Resultado eliminado correctamente.");
     }
 }
