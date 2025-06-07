@@ -28,6 +28,16 @@ public class CardioResults {
     @Column(name = "echocardiogram", nullable = false)
     private String echocardiogram;
 
+    @Column(name = "chest_pain_type", nullable = true)
+    private Integer chestPainType;
+
+    @Column(name = "resting_ecg", nullable = true)
+    private Integer restingECG;
+
+    @Column(name = "exercise_angina", nullable = true)
+    private Integer exerciseAngina;
+
+
     @OneToOne(mappedBy = "cardioResults")
     private PatientRecord patientRecord;
 

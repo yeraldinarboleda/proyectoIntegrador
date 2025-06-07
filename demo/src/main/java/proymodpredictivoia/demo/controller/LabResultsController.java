@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import proymodpredictivoia.demo.model.LabResults;
 import proymodpredictivoia.demo.repository.LabResultsRepository;
 
-import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/lab-results")
