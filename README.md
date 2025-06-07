@@ -13,6 +13,7 @@ http://localhost:8081/api/ai/generate?text=
 cd my-app  
 npm install  
 npm start  
+npm install recharts
 http://localhost:3000  
 # Iniciar microservicio  
 python python-predictor\serve_predict.py  
