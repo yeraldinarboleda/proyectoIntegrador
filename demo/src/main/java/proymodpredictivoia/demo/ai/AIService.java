@@ -580,22 +580,56 @@ public class AIService {
                             .writeValueAsString(patientData);
 
         StringBuilder p = new StringBuilder()
-            .append("Eres un cardiólogo experto: usa SOLO los datos clínicos y la predicción ")
-            .append("del modelo para diagnosticar. No inventes información.\n\n")
-            .append("OCR:\n").append(ocrText).append("\n\n")
-            .append("Imagen:\n").append(imageDesc).append("\n\n")
-            .append("Datos (JSON):\n").append(patientJson).append("\n\n")
-            .append("Predicción:\n")
-            .append(String.format(" Probabilidad: %.2f%%\n", pr.getProbability()*100))
-            .append(" Top features:\n");
-        for (List<Object> feat : pr.getTop_features()) {
-            p.append("  - ").append(feat.get(0)).append(": ").append(feat.get(1)).append("\n");
-        }
-        p.append("\nComo cardiólogo, responde:\n")
-        .append(" a) Diagnóstico.\n")
-        .append(" b) Factores de riesgo.\n")
-        .append(" c) Recomendaciones.\n")
-        .append(" d) Consecuencias de no seguirlas.");
+        .append("Eres un cardiólogo experto. Usa SOLO los datos clínicos y la predicción del modelo para diagnosticar. No inventes información.\n\n")
+
+        // Contexto
+        .append("1) OCR extraído:\n").append(ocrText).append("\n\n")
+        .append("2) Descripción de imagen:\n").append(imageDesc).append("\n\n")
+        .append("3) Datos del paciente (JSON):\n").append(patientJson).append("\n\n")
+        .append("4) Predicción del modelo:\n")
+        .append(String.format("   • Probabilidad de enfermedad cardiovascular: %.2f%%\n", pr.getProbability() * 100))
+        .append("   • Top características influyentes:\n");
+    for (List<Object> feat : pr.getTop_features()) {
+        p.append(String.format("     - %s: %s\n", feat.get(0), feat.get(1).toString()));
+    }
+    p.append("\n---\n")
+    // Nueva sección: dashboard
+    .append("5) Dashboard del paciente:\n")
+    .append("   • Edad: ").append(patientData.get("age")).append(" años\n")
+    .append("   • Género: ").append((Integer)patientData.get("gender") == 1 ? "Masculino" : "Femenino").append("\n")
+    .append("   • Probabilidad: ").append(pr.getProbability()*100).append("%\n")
+    .append("   • Presión arterial sistólica: ").append(patientData.get("restingBP")).append(" mmHg\n")
+    .append("   • Colesterol total: ").append(patientData.get("serumcholestrol")).append(" mg/dL\n")
+    .append("   • FC máxima: ").append(patientData.get("maxheartrate")).append("\n")
+    .append("   • Oldpeak: ").append(patientData.get("oldpeak")).append("\n")
+    .append("   • Nº vasos principales: ").append(patientData.get("noofmajorvessels")).append("\n") 
+    .append("   • Angina inducida por ejercicio: ").append(((Integer)patientData.get("exerciseangia")==1)?"Sí":"No").append("\n\n")
+
+    // Visualizaciones
+    .append("6) Visualizaciones y simulaciones:\n")
+    .append("   a) Gráfica de riesgo actual vs. riesgo medio poblacional.\n")
+    .append("   b) Simulación de evolución del riesgo si el paciente:\n")
+    .append("      • Mejora dieta (50% reducción de colesterol): proyecta riesgo a 6, 12 y 24 meses.\n")
+    .append("      • Aumenta ejercicio (10% incremento en FC máxima): proyecta riesgo a los mismos plazos.\n")
+    .append("      • No sigue recomendaciones: proyecta tendencia actual.\n")
+    .append("   Para cada escenario, describe:\n")
+    .append("      - Tabla con probabilidades estimadas en cada horizonte temporal.\n")
+    .append("      - Gráfica de líneas con las tres curvas (paciente vs. medio poblacional).\n\n")
+
+    // Instrucciones finales
+    .append("Como cardiólogo, responde:\n")
+    .append(" a) Diagnóstico (presencia/ausencia).\n")
+    .append(" b) Factores de riesgo.\n")
+    .append(" c) Recomendaciones específicas.\n")
+    .append(" d) Consecuencias de no seguir recomendaciones.\n")
+    .append("e) Incluye el dashboard y las descripciones de las gráficas solicitadas.\n");
+
+    String bodyJson = om.writeValueAsString(
+        Map.of("contents", List.of(
+            Map.of("parts", List.of(Map.of("text", p.toString())))
+        ))
+    );
+
 
         // 3) Construir JSON para generateContent
         ObjectNode root    = om.createObjectNode();
@@ -603,7 +637,7 @@ public class AIService {
         ObjectNode item    = contents.addObject();
         ArrayNode parts    = item.putArray("parts");
         parts.addObject().put("text", p.toString());
-        String bodyJson = om.writeValueAsString(root);
+        bodyJson = om.writeValueAsString(root);
 
         System.out.println("=== GEMINI REQUEST ===\n" + bodyJson);
 
