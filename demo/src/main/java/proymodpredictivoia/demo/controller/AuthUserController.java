@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.*;
 
 import proymodpredictivoia.demo.model.AuthUser;
 import proymodpredictivoia.demo.repository.AuthUserRepository;
+import proymodpredictivoia.demo.service.LoginLogService;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +22,12 @@ public class AuthUserController {
     @Autowired
     private AuthUserRepository authUserRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private LoginLogService loginLogService;
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody AuthUser user) {
         // Verifica si el usuario ya existe por su documentId
@@ -26,30 +35,43 @@ public class AuthUserController {
             return ResponseEntity.badRequest().body("El usuario ya existe con ese documentId.");
         }
 
+        // Hashear la contraseña antes de guardarla
+        String hashedPassword = passwordEncoder.encode(user.getHashedPassword());
+        user.setHashedPassword(hashedPassword);
+
         authUserRepository.save(user);
         return ResponseEntity.ok("Usuario registrado exitosamente.");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
-        String documentId = request.get("documentId");
-        String password = request.get("password");
+public ResponseEntity<?> login(@RequestBody Map<String, String> request,
+                               @RequestHeader(value = "User-Agent", defaultValue = "unknown") String userAgent,
+                               @RequestHeader(value = "X-Forwarded-For", required = false) String forwardedFor,
+                               @RequestHeader(value = "Remote_Addr", required = false) String remoteAddr) {
 
-        // Buscar usuario por documentId
-        Optional<AuthUser> optionalUser = authUserRepository.findByDocumentId(documentId);
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(401).body("Usuario no encontrado.");
-        }
+    String documentId = request.get("documentId");
+    String password = request.get("password");
 
-        AuthUser user = optionalUser.get();
+    String ipAddress = forwardedFor != null ? forwardedFor : (remoteAddr != null ? remoteAddr : "unknown");
 
-        // Verificar contraseña (de forma simple, sin hashing por ahora)
-        if (!user.getHashedPassword().equals(password)) {
-            return ResponseEntity.status(401).body("Contraseña incorrecta.");
-        }
+    Optional<AuthUser> optionalUser = authUserRepository.findByDocumentId(documentId);
 
-        return ResponseEntity.ok("Login exitoso");
+    if (optionalUser.isEmpty()) {
+        loginLogService.logLoginAttempt(documentId, false, "Usuario no encontrado", ipAddress, userAgent);
+        return ResponseEntity.status(401).body("Usuario no encontrado.");
     }
+
+    AuthUser user = optionalUser.get();
+
+    if (!passwordEncoder.matches(password, user.getHashedPassword())) {
+        loginLogService.logLoginAttempt(documentId, false, "Contraseña incorrecta", ipAddress, userAgent);
+        return ResponseEntity.status(401).body("Contraseña incorrecta.");
+    }
+
+    loginLogService.logLoginAttempt(documentId, true, null, ipAddress, userAgent);
+    return ResponseEntity.ok("Login exitoso");
+}
+
 
     // ✅ Obtener todos los usuarios
     @GetMapping("/all")

@@ -9,6 +9,12 @@ docker compose up -d
 ./mvnw clean test
 
 http://localhost:8081/api/ai/generate?text=  
+# iniciar frontend
+cd my-app
+npm install
+npm start
+http://localhost:3000
+
 # iniciar frontend  
 cd my-app  
 npm install    
