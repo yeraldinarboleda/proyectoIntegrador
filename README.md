@@ -9,12 +9,13 @@ docker compose up -d
 ./mvnw clean test
 
 http://localhost:8081/api/ai/generate?text=  
-# iniciar frontend  
-cd my-app  
-npm install  
+# iniciar frontend
+cd my-app
+npm install
 npm start
-http://localhost:3000  
-# Iniciar microservicio  
+http://localhost:3000
+
+# Iniciar microservicio
 python python-predictor\serve_predict.py  
 
 # ARQUITECTURA BACKEND  

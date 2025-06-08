@@ -36,28 +36,38 @@ public class CardioResultsController {
     private CardioResultsRepository cardioResultsRepository;
 
     @PostMapping("/upload")
-    public CardioResults uploadCardioResults(
-            @RequestParam(value = "electroFiles", required = false) MultipartFile[] electroFiles,
-            @RequestParam(value = "ecoFiles", required = false) MultipartFile[] ecoFiles
-    ) throws IOException {
-        System.out.println("→ Endpoint /upload llamado");
-        System.out.println("Archivos electro: " + (electroFiles != null ? electroFiles.length : "null"));
-        System.out.println("Archivos eco: " + (ecoFiles != null ? ecoFiles.length : "null"));
+public CardioResults uploadCardioResults(
+        @RequestParam(value = "electrocardiogramFiles", required = false) MultipartFile[] electroFiles,
+        @RequestParam(value = "echocardiogramFiles", required = false) MultipartFile[] ecoFiles,
+        @RequestParam(value = "chestPainType", required = false) String chestPainType,
+        @RequestParam(value = "restingECG", required = false) String restingECG,
+        @RequestParam(value = "exerciseAngina", required = false) String exerciseAngina
+) throws IOException {
+    System.out.println("→ Endpoint /upload llamado");
 
-        String electroPaths = (electroFiles != null && electroFiles.length > 0)
-                ? saveFiles(electroFiles, "electros")
-                : "";
+    String electroPaths = (electroFiles != null && electroFiles.length > 0)
+            ? saveFiles(electroFiles, "electros")
+            : "";
 
-        String ecoPaths = (ecoFiles != null && ecoFiles.length > 0)
-                ? saveFiles(ecoFiles, "ecos")
-                : "";
+    String ecoPaths = (ecoFiles != null && ecoFiles.length > 0)
+            ? saveFiles(ecoFiles, "ecos")
+            : "";
 
-        CardioResults result = new CardioResults();
-        result.setElectrocardiogram(electroPaths);
-        result.setEchocardiogram(ecoPaths);
+    CardioResults result = new CardioResults();
+    result.setElectrocardiogram(electroPaths);
+    result.setEchocardiogram(ecoPaths);
 
-        return cardioResultsRepository.save(result);
-    }
+    // Convertir Strings a Integer si no son nulos ni vacíos
+    if (chestPainType != null && !chestPainType.isEmpty())
+        result.setChestPainType(Integer.parseInt(chestPainType));
+    if (restingECG != null && !restingECG.isEmpty())
+        result.setRestingECG(Integer.parseInt(restingECG));
+    if (exerciseAngina != null && !exerciseAngina.isEmpty())
+        result.setExerciseAngina(Integer.parseInt(exerciseAngina));
+
+    return cardioResultsRepository.save(result);
+}
+
 
     private String saveFiles(MultipartFile[] files, String folder) throws IOException {
         StringBuilder savedPaths = new StringBuilder();
