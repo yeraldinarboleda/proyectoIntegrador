@@ -15,7 +15,17 @@ npm install
 npm start
 http://localhost:3000
 
-# Iniciar microservicio
+# iniciar frontend  
+cd my-app  
+npm install    
+npm install react-icons  
+npm install recharts  
+
+npm start  
+
+http://localhost:3000  
+
+# Iniciar microservicio  
 python python-predictor\serve_predict.py  
 
 # ARQUITECTURA BACKEND  
