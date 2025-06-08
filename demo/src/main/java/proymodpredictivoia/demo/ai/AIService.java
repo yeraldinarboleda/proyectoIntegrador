@@ -603,8 +603,11 @@ public class AIService {
     .append("   • FC máxima: ").append(patientData.get("maxheartrate")).append("\n")
     .append("   • Oldpeak: ").append(patientData.get("oldpeak")).append("\n")
     .append("   • Nº vasos principales: ").append(patientData.get("noofmajorvessels")).append("\n") 
-    .append("   • Angina inducida por ejercicio: ").append(((Integer)patientData.get("exerciseangia")==1)?"Sí":"No").append("\n\n")
-
+    .append("   • Angina inducida por ejercicio: ").append(((Integer)patientData.get("exerciseangia")==1)?"Sí":"No").append("\n\n");
+        for (List<Object> feat : pr.getTop_features()) {
+        p.append(String.format("     - %s: %s\n", feat.get(0), feat.get(1).toString()));
+    }
+    p.append("\n---\n")
     // Visualizaciones
     .append("6) Visualizaciones y simulaciones:\n")
     .append("   a) Gráfica de riesgo actual vs. riesgo medio poblacional.\n")
@@ -729,6 +732,17 @@ public static void main(String[] args) {
   + "(ST–T anormal). La pendiente del segmento ST durante el ejercicio es plana (código 2). "
   + "Se han identificado dos vasos principales afectados. "
   + "Azúcar en sangre en ayunas: 1";
+
+  nombre: maria, edad: 68 años, sexo femenino, oldpeak:4.2, electrocardiograma en reposo alteraciones tipo 1, 
+  tiene angina durante el esfuerzo, dolor torácico: 2, presión arterial en reposo de 165, colesterol:300, 
+  frecuencia cardíaca máxima alcanzada: 110, La pendiente del segmento ST durante el ejercicio es plana(codigo 2), 
+  dos vasos principales afectados, Azúcar en sangre en ayunas: 1
+
+  nombre: maria, edad: 20 años, sexo femenino, oldpeak:0, electrocardiograma en reposo alteraciones tipo 1, 
+  tiene angina durante el esfuerzo, dolor torácico: 1, presión arterial en reposo de 100, colesterol:200, 
+  frecuencia cardíaca máxima alcanzada: 90, La pendiente del segmento ST durante el ejercicio es codigo 2, 
+  dos vasos principales afectados, Azúcar en sangre en ayunas: 0
+
 */
    
     }

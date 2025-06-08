@@ -1,6 +1,7 @@
 // src/components/AIComponent.js
 
 import React, { useState } from 'react';
+import { FaRegClipboard, FaCheckCircle } from "react-icons/fa";
 import {
   ResponsiveContainer,
   LineChart,
@@ -8,12 +9,15 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend
+  Legend,
+  BarChart, Bar
 } from 'recharts';
 import { generateContent } from '../services/AIService';
 import './styles/AIComponent.css';
 
 function AIComponent() {
+  const [copied, setCopied] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [inputText, setInputText] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [aiResponse, setAiResponse] = useState('');
@@ -21,6 +25,17 @@ function AIComponent() {
   const [dashboardData, setDashboardData] = useState(null);
   const [simData, setSimData] = useState(null);
   const [showDownloadOptions, setShowDownloadOptions] = useState(false);
+
+  const exampleText = `edad: 68 años, sexo femenino, oldpeak:4.2, electrocardiograma en reposo alteraciones tipo 1, 
+  tiene angina durante el esfuerzo, dolor torácico: 2, presión arterial en reposo de 165, colesterol:300, 
+  frecuencia cardíaca máxima alcanzada: 110, La pendiente del segmento ST durante el ejercicio es codigo 2, 
+  dos vasos principales afectados, Azúcar en sangre en ayunas: 1`;
+
+const handleCopyExample = () => {
+  navigator.clipboard.writeText(exampleText);
+  setCopied(true);
+  setTimeout(() => setCopied(false), 1500); // El chulo desaparece después de 1.5 segundos
+};
 
   // 1) Manejo de selección de archivos
   const handleFileChange = (event) => {
@@ -241,12 +256,79 @@ function AIComponent() {
       alert('No se pudo descargar el archivo.');
     }
   };
-
+  const staticFeatureData = [
+    { name: 'Pendiente ST', importance: 42.0 },
+    { name: 'Dolor de pecho', importance: 15.7 },
+    { name: 'Presión arterial en reposo', importance: 13.0 },
+    { name: 'N° vasos principales', importance: 7.0 },
+    { name: 'Colesterol total', importance: 5.0 },
+    { name: 'FC máxima', importance: 3.0 }
+  ];
   // 5) Render completo
   return (
     <div className="ai-component">
       <h1>Generar Diagnóstico con Gemini y Vision AI</h1>
+      {/* Botón para mostrar/ocultar instrucciones */}
+      <button
+        style={{ marginBottom: '1rem' }}
+        onClick={() => setShowInstructions((v) => !v)}
+      >
+        {showInstructions ? 'Ocultar instrucciones' : 'Mostrar instrucciones para ingresar datos'}
+      </button>
 
+      {/* Instrucciones desplegables */}
+      {showInstructions && (
+        <div className="instructions-box" style={{
+          background: '#f8f8ff',
+          border: '1px solid #bdbdbd',
+          borderRadius: '8px',
+          padding: '1.2rem',
+          marginBottom: '1.5rem',
+          maxWidth: 700
+        }}>
+          <h3>Ejemplo y guía para ingresar los datos del paciente</h3>
+          <ul>
+            <li><b>Edad:</b> 68 años <span style={{color:'#888'}}>(en años)</span></li>
+            <li><b>Sexo:</b> femenino <span style={{color:'#888'}}>(o masculino)</span></li>
+            <li><b>Depresión del segmento ST (oldpeak):</b> 4.2 <span style={{color:'#888'}}>(valor entre 0 y 6.2, a mayor valor, peor condición)</span></li>
+            <li><b>Electrocardiograma en reposo:</b> alteraciones tipo 1 <span style={{color:'#888'}}>(0: normal, 1: anormalidad ST-T, 2: hipertrofia ventricular izquierda)</span></li>
+            <li><b>Angina durante el esfuerzo:</b> sí <span style={{color:'#888'}}>(solo "sí" o "no")</span></li>
+            <li><b>Dolor torácico:</b> 2 <span style={{color:'#888'}}>(0: angina típica, 1: angina atípica, 2: dolor no anginoso, 3: asintomático)</span></li>
+            <li><b>Presión arterial en reposo:</b> 165 <span style={{color:'#888'}}>(en mm Hg)</span></li>
+            <li><b>Colesterol total:</b> 300 <span style={{color:'#888'}}>(en mg/dL)</span></li>
+            <li><b>Frecuencia cardíaca máxima alcanzada:</b> 110</li>
+            <li><b>Pendiente del segmento ST durante el ejercicio:</b> plana (código 2) <span style={{color:'#888'}}>(1: ascendente, 2: plana, 3: descendente; el mayor es el más riesgoso)</span></li>
+            <li><b>Número de vasos principales afectados:</b> 2 <span style={{color:'#888'}}>(puede ser cero, uno, dos o tres)</span></li>
+            <li><b>Azúcar en sangre en ayunas:</b> 1 <span style={{color:'#888'}}>(0: menor o igual a 120 mg/dL, 1: mayor a 120 mg/dL)</span></li>
+            <li><b>ST se refiere al segmento ST de un electrocardiograma</b> <span style={{color:'#888'}}>(es la porción del electrocardiograma (ECG) que va desde el final del complejo QRS (punto J) hasta el inicio de la onda T.)</span></li>
+          </ul>
+          <b>Ejemplo de entrada:</b>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <pre style={{
+              background: '#f4f4f4',
+              padding: '0.7rem',
+              borderRadius: '6px',
+              fontSize: '0.95em',
+              margin: 0
+            }}>
+              {exampleText}
+            </pre>
+            <button
+              onClick={handleCopyExample}
+              title="Copiar ejemplo"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                marginLeft: 4
+              }}
+            >
+              {copied ? <FaCheckCircle size={22} color="#2ecc40" /> : <FaRegClipboard size={22} color="#555" />}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Texto libre para Gemini */}
       <div className="text-input-container">
         <label htmlFor="textInput">Texto para análisis de Gemini:</label>
@@ -447,7 +529,30 @@ function AIComponent() {
           </LineChart>
         </ResponsiveContainer>
         </>
+        
       )}
+
+      {/* — Feature Importance Bar Chart — */}
+      <div style={{ width: '100%', height: 350, margin: '2rem 0' }}>
+        <h2 style={{ textAlign: 'center' }}>Importancia de Características (Top 6)</h2>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={staticFeatureData}
+            layout="vertical"
+            margin={{ left: 160, top: 20, right: 20, bottom: 20 }} // margen izquierdo aumentado
+          >
+            <XAxis type="number" tickFormatter={v => `${v}%`} />
+            <YAxis
+              dataKey="name"
+              type="category"
+              tick={{ fontSize: 14, width: 150, wordBreak: 'break-all' }} // fuente más pequeña y ancho fijo
+            />
+            <Tooltip formatter={v => `${v}%`} />
+            <Bar dataKey="importance" name="Importancia (%)" fill="#8884d8" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
     </div>
   );
 }
