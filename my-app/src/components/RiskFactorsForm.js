@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './styles/RiskFactorsForm.css';
 
-const RiskFactorsForm = () => {
+const RiskFactorsForm = ({ documentId }) => {
   const [formData, setFormData] = useState({
     smoking: false,
     drugUse: false,
@@ -31,14 +31,14 @@ const RiskFactorsForm = () => {
     if (!formData.physicalActivity) newErrors.physicalActivity = 'Este campo es obligatorio';
     if (!formData.diet) newErrors.diet = 'Este campo es obligatorio';
     if (formData.diabetes && !formData.diabetesType) newErrors.diabetesType = 'Seleccione un tipo de diabetes';
-    if (formData.cardiovascularDiseases && !formData.cardiovascularDiseaseType) newErrors.cardiovascularDiseaseType = 'Seleccione un tipo de enfermedad cardiovascular';
+    if (formData.cardiovascularDiseases && !formData.cardiovascularDiseaseType)
+      newErrors.cardiovascularDiseaseType = 'Seleccione un tipo de enfermedad cardiovascular';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) {
       alert('Por favor, complete todos los campos obligatorios');
       return;
@@ -46,9 +46,9 @@ const RiskFactorsForm = () => {
 
     setLoading(true);
 
-    // Limpieza de datos para evitar errores con campos opcionales
     const cleanedData = {
       ...formData,
+      documentId,
       diabetesType: formData.diabetes ? formData.diabetesType : null,
       cardiovascularDiseaseType: formData.cardiovascularDiseases ? formData.cardiovascularDiseaseType : null,
       otherCardiovascularDiseases: formData.cardiovascularDiseases ? formData.otherCardiovascularDiseases : null,
@@ -63,9 +63,7 @@ const RiskFactorsForm = () => {
         body: JSON.stringify(cleanedData)
       });
 
-      if (!response.ok) {
-        throw new Error('Error al guardar factores de riesgo');
-      }
+      if (!response.ok) throw new Error('Error al guardar factores de riesgo');
 
       alert('Factores de riesgo guardados correctamente');
       setFormData({

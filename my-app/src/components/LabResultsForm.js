@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './styles/LabResultsForm.css';
 
-const LabResultsForm = () => {
+const LabResultsForm = ({ documentId }) => {
   const [formData, setFormData] = useState({
     hemoglobinA1c: '',
     fastingGlucose: '',
@@ -32,6 +32,7 @@ const LabResultsForm = () => {
       ldl: parseFloat(formData.ldl),
       triglycerides: parseFloat(formData.triglycerides),
       creatinine: parseFloat(formData.creatinine),
+      documentId, // <- Se asocia al paciente
     };
 
     try {
