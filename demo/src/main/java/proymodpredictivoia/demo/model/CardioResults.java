@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +20,9 @@ public class CardioResults {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "document_id", nullable = false)
+    private String documentId;
     
     @Column(name = "electrocardiogram", nullable = false)
     private String electrocardiogram;
@@ -28,8 +30,14 @@ public class CardioResults {
     @Column(name = "echocardiogram", nullable = false)
     private String echocardiogram;
 
-    @OneToOne(mappedBy = "cardioResults")
-    private PatientRecord patientRecord;
+    @Column(name = "chest_pain_type", nullable = true)
+    private Integer chestPainType;
+
+    @Column(name = "resting_ecg", nullable = true)
+    private Integer restingECG;
+
+    @Column(name = "exercise_angina", nullable = true)
+    private Integer exerciseAngina;
 
 }
 

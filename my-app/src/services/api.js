@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const API_URL = "http://localhost:8081/api"; 
 
 export const sendPersonalData = async (personalData) => {
@@ -22,7 +24,7 @@ export const sendPersonalData = async (personalData) => {
 };
 
 export const sendMedicalData = async (data) => {
-  const response = await fetch(`${API_URL}/Medical-data`, {
+  const response = await fetch(`${API_URL}/medical-data`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -69,12 +71,8 @@ export const sendLabResults = async (data) => {
   return response.json();
 };
 
-export const uploadCardioResults = async (electroFiles, ecoFiles) => {
-  const formData = new FormData();
 
-  electroFiles.forEach(file => formData.append('electroFiles', file));
-  ecoFiles.forEach(file => formData.append('ecoFiles', file));
-
+export const uploadCardioResults = async (formData) => {
   const response = await fetch(`${API_URL}/cardio-results/upload`, {
     method: 'POST',
     body: formData,
@@ -87,10 +85,23 @@ export const uploadCardioResults = async (electroFiles, ecoFiles) => {
   return await response.json();
 };
 
+
+
 export const getPersonalDataByDocument = async (documentId) => {
   const response = await fetch(`${API_URL}/personal-data/document/${documentId}`);
   if (!response.ok) {
     throw new Error("Paciente no encontrado");
   }
   return await response.json(); // Retorna el objeto del paciente
+};
+
+
+export const getMedicalDataByDocumentId = async (documentId) => {
+  const response = await axios.get(`${API_URL}/by-document/${documentId}`);
+  return response.data;
+};
+
+export const saveMedicalData = async (documentId, data) => {
+  const response = await axios.post(`${API_URL}/save/${documentId}`, data);
+  return response.data;
 };

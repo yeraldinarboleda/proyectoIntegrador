@@ -1,44 +1,38 @@
 package proymodpredictivoia.demo.model;
 
-import java.time.LocalDate;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;  // 📌 Para manejar las fechas de forma correcta
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "personal_data")
 @Data
 public class PersonalData {
 
-    @Id  // 📌 Establecer el número de documento como clave primaria
+    @Id
     private String documentId;
 
     @Column(nullable = false)
     private String documentType;
-    
+
     @Column(nullable = false)
     private String firstName;
-    
+
     @Column(nullable = false)
     private String lastName;
-    
-    private LocalDate birthDate;  // 📌 Usar LocalDate para fechas
-    
+
+    private LocalDate birthDate;
+
+    // gender: "masculino" o "femenino", lo mapeas en servicio a 1 o 0 según el modelo
     private String gender;
-    
+
     private String address;
-    
+
     private String contact;
-    
+
     private String gmail;
 
-    // Getters y setters generados por Lombok (@Data)
 
-    @OneToOne(mappedBy = "personalData")
-    private PatientRecord patientRecord;
-
+    
 }

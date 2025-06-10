@@ -1,42 +1,30 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:17
     container_name: postgres_db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      DB_USER: postgres
+      DB_PASS: postgres
       POSTGRES_DB: proyecto
     ports:
       - "5432:5432"
     volumes:
       - postgres_storage:/var/lib/postgresql/data
-    networks:
-      - backend-net
 
-  backend:
+backend:
     build:
       context: .
-    image: integrador-backend
-    container_name: backend_app
+      dockerfile: Dockerfile
+    container_name: springboot_app
+    restart: always
+    environment:
+      DB_USER: postgres
+      DB_PASS: postgres
     ports:
       - "8081:8081"
     depends_on:
       - db
-    networks:
-      - backend-net
-    environment:
-      DB_URL: jdbc:postgresql://db:5432/proyecto
-      DB_PORT: 5432
-      DB_NAME: proyecto
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-
 volumes:
   postgres_storage:
-
-networks:
-  backend-net:
-    driver: bridge
+    driver: local
