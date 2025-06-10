@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +21,9 @@ public class RiskFactors {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @Column(name = "document_id", nullable = false)
+    private String documentId;
+
     @Column(name = "smoking", nullable = false)
     private Boolean smoking;
     
@@ -61,7 +63,5 @@ public class RiskFactors {
     @Column(name = "other_cardiovascular_diseases")
     private String otherCardiovascularDiseases;
 
-    @OneToOne(mappedBy = "riskFactors")
-    private PatientRecord patientRecord;
 
 }

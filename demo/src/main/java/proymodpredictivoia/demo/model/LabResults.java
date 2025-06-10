@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +20,9 @@ public class LabResults {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "document_id", nullable = false)
+    private String documentId;
     
     @Column(name = "hemoglobin_a1c", nullable = false)
     private Double hemoglobinA1c;
@@ -42,8 +44,5 @@ public class LabResults {
     
     @Column(name = "creatinine", nullable = false)
     private Double creatinine;
-
-    @OneToOne(mappedBy = "labResults")
-    private PatientRecord patientRecord;
 
 }

@@ -3,6 +3,7 @@ package proymodpredictivoia.demo.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import proymodpredictivoia.demo.model.RiskFactors;
 import proymodpredictivoia.demo.repository.RiskFactorsRepository;
 
@@ -73,5 +74,11 @@ public class RiskFactorsController {
 
         riskFactorsRepository.deleteById(id);
         return ResponseEntity.ok("Factores de riesgo eliminados correctamente.");
+    }
+
+
+    @GetMapping("/by-document/{documentId}")
+    public List<RiskFactors> getByDocumentId(@PathVariable String documentId) {
+        return riskFactorsRepository.findByDocumentId(documentId);
     }
 }
