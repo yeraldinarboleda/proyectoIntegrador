@@ -95,3 +95,13 @@ export const getPersonalDataByDocument = async (documentId) => {
   return await response.json(); // Retorna el objeto del paciente
 };
 
+
+export const getMedicalDataByDocumentId = async (documentId) => {
+  const response = await axios.get(`${API_URL}/by-document/${documentId}`);
+  return response.data;
+};
+
+export const saveMedicalData = async (documentId, data) => {
+  const response = await axios.post(`${API_URL}/save/${documentId}`, data);
+  return response.data;
+};

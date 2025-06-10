@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { sendMedicalData } from "../services/api";
 import "./styles/MedicalDataForm.css";
 
-const MedicalDataForm = () => {
+const MedicalDataForm = ({ documentId }) => {
   const [formData, setFormData] = useState({
     waistCircumference: "",
     systolicPressure: "",
@@ -23,7 +23,6 @@ const MedicalDataForm = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Calcular automáticamente el BMI
   useEffect(() => {
     const weight = parseFloat(formData.weight);
     const height = parseFloat(formData.height);
@@ -42,10 +41,7 @@ const MedicalDataForm = () => {
   const validateForm = () => {
     const newErrors = {};
     Object.keys(formData).forEach((key) => {
-      if (
-        formData[key] === "" &&
-        key !== "bmi" // BMI se calcula automáticamente
-      ) {
+      if (formData[key] === "" && key !== "bmi") {
         newErrors[key] = "Este campo es obligatorio";
       }
     });
@@ -63,7 +59,7 @@ const MedicalDataForm = () => {
     setLoading(true);
     try {
       const dataToSend = {
-        ...formData,
+        documentId: documentId,
         waistCircumference: parseFloat(formData.waistCircumference),
         systolicPressure: parseInt(formData.systolicPressure),
         diastolicPressure: parseInt(formData.diastolicPressure),
@@ -78,8 +74,12 @@ const MedicalDataForm = () => {
         oldpeak: parseFloat(formData.oldpeak),
         slope: parseInt(formData.slope),
         noOfMajorVessels: parseInt(formData.noOfMajorVessels),
+        
       };
-
+      if (!documentId) {
+        alert("Error: el ID del paciente no está definido.");
+        return;
+}
       const response = await sendMedicalData(dataToSend);
       alert("Datos médicos guardados correctamente: " + JSON.stringify(response));
 
@@ -101,6 +101,8 @@ const MedicalDataForm = () => {
       });
     } catch (error) {
       alert("Ocurrió un error al guardar los datos");
+      
+
       console.error(error);
     } finally {
       setLoading(false);

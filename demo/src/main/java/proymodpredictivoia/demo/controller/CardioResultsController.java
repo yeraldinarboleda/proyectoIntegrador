@@ -37,6 +37,7 @@ public class CardioResultsController {
 
     @PostMapping("/upload")
 public CardioResults uploadCardioResults(
+        @RequestParam("documentId") String documentId,
         @RequestParam(value = "electrocardiogramFiles", required = false) MultipartFile[] electroFiles,
         @RequestParam(value = "echocardiogramFiles", required = false) MultipartFile[] ecoFiles,
         @RequestParam(value = "chestPainType", required = false) String chestPainType,
@@ -54,6 +55,7 @@ public CardioResults uploadCardioResults(
             : "";
 
     CardioResults result = new CardioResults();
+    result.setDocumentId(documentId);
     result.setElectrocardiogram(electroPaths);
     result.setEchocardiogram(ecoPaths);
 
@@ -110,6 +112,7 @@ public CardioResults uploadCardioResults(
         if (optional.isEmpty()) return ResponseEntity.notFound().build();
 
         CardioResults result = optional.get();
+        
         result.setElectrocardiogram(updatedResult.getElectrocardiogram());
         result.setEchocardiogram(updatedResult.getEchocardiogram());
         result.setChestPainType(updatedResult.getChestPainType());
@@ -128,5 +131,10 @@ public CardioResults uploadCardioResults(
         }
         cardioResultsRepository.deleteById(id);
         return ResponseEntity.ok("Resultado eliminado correctamente.");
+    }
+
+    @GetMapping("/by-document/{documentId}")
+    public List<CardioResults> getByDocumentId(@PathVariable String documentId) {
+        return cardioResultsRepository.findByDocumentId(documentId);
     }
 }
