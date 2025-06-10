@@ -16,6 +16,7 @@ import { generateContent } from '../services/AIService';
 import './styles/AIComponent.css';
 
 function AIComponent() {
+  const [patientId, setPatientId] = useState('');
   const [copiedNoCardio, setCopiedNoCardio] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -37,7 +38,54 @@ function AIComponent() {
   frecuencia cardíaca máxima alcanzada: 160, la pendiente del segmento ST durante el ejercicio es código 1, 
   cero vasos principales afectados, azúcar en sangre en ayunas: no`;
 
+  // Función para buscar paciente
+  const handleFetchPatient = async () => {
+    if (!patientId) {
+      alert('Ingrese el ID del paciente');
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:8081/api/summary/${patientId}`);
+      if (!res.ok) throw new Error('No se encontró el paciente');
+      const data = await res.json();
 
+      // Formatea la información del paciente en texto plano
+      let text = '';
+      if (data.personalData) {
+        text += `Nombre: ${data.personalData.name || ''}\n`;
+        text += `Edad: ${data.personalData.age || ''}\n`;
+        text += `Sexo: ${data.personalData.gender || ''}\n`;
+      }
+      if (data.medicalData && data.medicalData.length > 0) {
+        text += '\nDatos médicos:\n';
+        data.medicalData.forEach(md => {
+          Object.entries(md).forEach(([k, v]) => text += `${k}: ${v}\n`);
+        });
+      }
+      if (data.labResults && data.labResults.length > 0) {
+        text += '\nResultados de laboratorio:\n';
+        data.labResults.forEach(lr => {
+          Object.entries(lr).forEach(([k, v]) => text += `${k}: ${v}\n`);
+        });
+      }
+      if (data.cardioResults && data.cardioResults.length > 0) {
+        text += '\nResultados cardiológicos:\n';
+        data.cardioResults.forEach(cr => {
+          Object.entries(cr).forEach(([k, v]) => text += `${k}: ${v}\n`);
+        });
+      }
+      if (data.riskFactors && data.riskFactors.length > 0) {
+        text += '\nFactores de riesgo:\n';
+        data.riskFactors.forEach(rf => {
+          Object.entries(rf).forEach(([k, v]) => text += `${k}: ${v}\n`);
+        });
+      }
+
+      setInputText(text.trim());
+    } catch (err) {
+      alert('No se pudo obtener la información del paciente');
+    }
+  };
 
 const handleCopyExample = () => {
   navigator.clipboard.writeText(exampleText);
@@ -372,6 +420,19 @@ const handleCopyExampleNoCardio = () => {
           </div>
         </div>
       )}
+      {/* Buscar paciente */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="ID o cédula del paciente"
+          value={patientId}
+          onChange={e => setPatientId(e.target.value)}
+          style={{ padding: 6, borderRadius: 6, border: '1px solid #ccc' }}
+        />
+        <button onClick={handleFetchPatient}>
+          Buscar paciente
+        </button>
+      </div>
       {/* Texto libre para Gemini */}
       <div className="text-input-container">
         <label htmlFor="textInput">Texto para análisis de Gemini:</label>
