@@ -1,9 +1,17 @@
 package proymodpredictivoia.demo;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.http.MediaType;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -24,6 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(CardioResultsController.class)
+@AutoConfigureMockMvc(addFilters = false)
+
 public class CardioResultsControllerTest {
 
     @Autowired
@@ -46,62 +56,71 @@ public class CardioResultsControllerTest {
         return cr;
     }
 
-    @Test
-    public void testGetAllCardioResults() throws Exception {
-        when(cardioResultsRepository.findAll()).thenReturn(Arrays.asList(getSampleCardioResults()));
+@Test
+public void testGetAllCardioResults() throws Exception {
+    when(cardioResultsRepository.findAll()).thenReturn(Arrays.asList(getSampleCardioResults()));
 
-        mockMvc.perform(get("/api/cardio-results"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L));
-    }
+    mockMvc.perform(get("/api/cardio-results")
+            .with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(1L));
+}
 
-    @Test
-    public void testGetCardioResultById() throws Exception {
-        when(cardioResultsRepository.findById(1L)).thenReturn(Optional.of(getSampleCardioResults()));
+@Test
+public void testGetCardioResultById() throws Exception {
+    when(cardioResultsRepository.findById(1L)).thenReturn(Optional.of(getSampleCardioResults()));
 
-        mockMvc.perform(get("/api/cardio-results/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L));
-    }
+    mockMvc.perform(get("/api/cardio-results/1")
+            .with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1L));
+}
 
-    @Test
-    public void testUpdateCardioResult() throws Exception {
-        CardioResults existing = getSampleCardioResults();
-        CardioResults updated = getSampleCardioResults();
-        updated.setChestPainType(1);
+@Test
+public void testUpdateCardioResult() throws Exception {
+    CardioResults existing = getSampleCardioResults();
+    CardioResults updated = getSampleCardioResults();
+    updated.setChestPainType(1);
 
-        when(cardioResultsRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(cardioResultsRepository.save(any(CardioResults.class))).thenReturn(updated);
+    when(cardioResultsRepository.findById(1L)).thenReturn(Optional.of(existing));
+    when(cardioResultsRepository.save(any(CardioResults.class))).thenReturn(updated);
 
-        mockMvc.perform(put("/api/cardio-results/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updated)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Actualizado correctamente."));
-    }
+    mockMvc.perform(put("/api/cardio-results/1")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updated)))
+            .andExpect(status().isOk())
+            .andExpect(content().string("Actualizado correctamente."));
+}
 
-    @Test
-    public void testDeleteCardioResult() throws Exception {
-        when(cardioResultsRepository.existsById(1L)).thenReturn(true);
-        doNothing().when(cardioResultsRepository).deleteById(1L);
+@Test
+public void testDeleteCardioResult() throws Exception {
+    when(cardioResultsRepository.existsById(1L)).thenReturn(true);
+    doNothing().when(cardioResultsRepository).deleteById(1L);
 
-        mockMvc.perform(delete("/api/cardio-results/1"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Resultado eliminado correctamente."));
-    }
+    mockMvc.perform(delete("/api/cardio-results/1")
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(content().string("Resultado eliminado correctamente."));
+}
 
-    @Test
-    public void testUploadCardioResults() throws Exception {
-        MockMultipartFile electroFile = new MockMultipartFile("electroFiles", "electro.csv", "text/csv", "data1".getBytes());
-        MockMultipartFile ecoFile = new MockMultipartFile("ecoFiles", "eco.csv", "text/csv", "data2".getBytes());
+@Test
+public void testUploadCardioResults() throws Exception {
+    MockMultipartFile electroFile = new MockMultipartFile("electroFiles", "electro.csv", "text/csv", "data1".getBytes());
+    MockMultipartFile ecoFile = new MockMultipartFile("ecoFiles", "eco.csv", "text/csv", "data2".getBytes());
 
-        CardioResults saved = getSampleCardioResults();
-        when(cardioResultsRepository.save(any(CardioResults.class))).thenReturn(saved);
+    CardioResults saved = getSampleCardioResults();
+    when(cardioResultsRepository.save(any(CardioResults.class))).thenReturn(saved);
 
-        mockMvc.perform(multipart("/api/cardio-results/upload")
-                .file(electroFile)
-                .file(ecoFile))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L));
-    }
+    mockMvc.perform(multipart("/api/cardio-results/upload")
+            .file(electroFile)
+            .file(ecoFile)
+            .with(user("admin").roles("ADMIN"))
+            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(1L));
+}
+
 }

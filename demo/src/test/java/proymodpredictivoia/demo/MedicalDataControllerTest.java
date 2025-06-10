@@ -9,6 +9,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import proymodpredictivoia.demo.controller.MedicalDataController;
 import proymodpredictivoia.demo.model.MedicalData;
 import proymodpredictivoia.demo.repository.MedicalDataRepository;
+
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -16,10 +18,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
+@AutoConfigureMockMvc(addFilters = false)
+
 public class MedicalDataControllerTest {
 
     @Mock
