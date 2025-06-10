@@ -16,6 +16,7 @@ import { generateContent } from '../services/AIService';
 import './styles/AIComponent.css';
 
 function AIComponent() {
+  const [copiedNoCardio, setCopiedNoCardio] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -29,12 +30,25 @@ function AIComponent() {
   const exampleText = `edad: 68 años, sexo femenino, oldpeak:4.2, electrocardiograma en reposo alteraciones tipo 1, 
   tiene angina durante el esfuerzo, dolor torácico: 2, presión arterial en reposo de 165, colesterol:300, 
   frecuencia cardíaca máxima alcanzada: 110, La pendiente del segmento ST durante el ejercicio es codigo 2, 
-  dos vasos principales afectados, Azúcar en sangre en ayunas: 1`;
+  dos vasos principales afectados, Azúcar en sangre en ayunas: si`;
+
+  const exampleTextNoCardio = `edad: 45 años, sexo masculino, oldpeak: 0.5, electrocardiograma en reposo normal tipo 0, 
+  no tiene angina durante el esfuerzo, dolor torácico: 3, presión arterial en reposo de 120, colesterol: 180, 
+  frecuencia cardíaca máxima alcanzada: 160, la pendiente del segmento ST durante el ejercicio es código 1, 
+  cero vasos principales afectados, azúcar en sangre en ayunas: no`;
+
+
 
 const handleCopyExample = () => {
   navigator.clipboard.writeText(exampleText);
   setCopied(true);
   setTimeout(() => setCopied(false), 1500); // El chulo desaparece después de 1.5 segundos
+};
+  // Ejemplo de texto sin problemas cardiovasculares
+const handleCopyExampleNoCardio = () => {
+  navigator.clipboard.writeText(exampleTextNoCardio);
+  setCopiedNoCardio(true);
+  setTimeout(() => setCopiedNoCardio(false), 1500); // El chulo desaparece después de 1.5 segundos
 };
 
   // 1) Manejo de selección de archivos
@@ -55,6 +69,10 @@ const handleCopyExample = () => {
 
   // 2) Formateador de texto (Markdown básico → HTML)
   const formatResponse = (text) => {
+    text = text.replace(
+    /^(\s*)\*(?!\*)(.*)$/gm,
+    '$1•$2'
+  );
     return text
       .replace(/\n\n/g, '<br><br>')
       .replace(/\n/g, '<br>')
@@ -297,12 +315,12 @@ const handleCopyExample = () => {
             <li><b>Presión arterial en reposo:</b> 165 <span style={{color:'#888'}}>(en mm Hg)</span></li>
             <li><b>Colesterol total:</b> 300 <span style={{color:'#888'}}>(en mg/dL)</span></li>
             <li><b>Frecuencia cardíaca máxima alcanzada:</b> 110</li>
-            <li><b>Pendiente del segmento ST durante el ejercicio:</b> plana (código 2) <span style={{color:'#888'}}>(1: ascendente, 2: plana, 3: descendente; el mayor es el más riesgoso)</span></li>
-            <li><b>Número de vasos principales afectados:</b> 2 <span style={{color:'#888'}}>(puede ser cero, uno, dos o tres)</span></li>
-            <li><b>Azúcar en sangre en ayunas:</b> 1 <span style={{color:'#888'}}>(0: menor o igual a 120 mg/dL, 1: mayor a 120 mg/dL)</span></li>
-            <li><b>ST se refiere al segmento ST de un electrocardiograma</b> <span style={{color:'#888'}}>(es la porción del electrocardiograma (ECG) que va desde el final del complejo QRS (punto J) hasta el inicio de la onda T.)</span></li>
+            <li><b>Pendiente del segmento ST durante el ejercicio:</b> código 2 <span style={{color:'#888'}}>(1: ascendente, 2: plana, 3: descendente; el mayor es el más riesgoso)</span></li>
+            <li><b>Número de vasos principales afectados:</b> 2 <span style={{color:'#888'}}>(puede ser 0, 1, 2, 3)</span></li>
+            <li><b>Azúcar en sangre en ayunas:</b> si <span style={{color:'#888'}}>(0(no): menor o igual a 120 mg/dL, 1(si): mayor a 120 mg/dL)</span></li>
+            <li><b>NOTA: ST se refiere al segmento ST de un electrocardiograma</b> <span style={{color:'#888'}}>(es la porción del electrocardiograma (ECG) que va desde el final del complejo QRS (punto J) hasta el inicio de la onda T.)</span></li>
           </ul>
-          <b>Ejemplo de entrada:</b>
+          <b>Ejemplo de entrada paciente con problemas cardiovasculares:</b>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <pre style={{
               background: '#f4f4f4',
@@ -327,6 +345,31 @@ const handleCopyExample = () => {
               {copied ? <FaCheckCircle size={22} color="#2ecc40" /> : <FaRegClipboard size={22} color="#555" />}
             </button>
           </div>
+          <b>Ejemplo de entrada paciente sin problemas cardiovasculares:</b>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <pre style={{
+              background: '#f4f4f4',
+              padding: '0.7rem',
+              borderRadius: '6px',
+              fontSize: '0.95em',
+              margin: 0
+            }}>
+              {exampleTextNoCardio}
+            </pre>
+            <button
+              onClick={handleCopyExampleNoCardio}
+              title="Copiar ejemplo"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                marginLeft: 4
+              }}
+            >
+              {copiedNoCardio ? <FaCheckCircle size={22} color="#2ecc40" /> : <FaRegClipboard size={22} color="#555" />}
+            </button>
+          </div>
         </div>
       )}
       {/* Texto libre para Gemini */}
@@ -342,8 +385,17 @@ const handleCopyExample = () => {
       </div>
 
       {/* Upload de archivos para Vision AI */}
-      <div className="file-input-container" style={{ margin: '20px' }}>
-        <label htmlFor="fileInput">Sube imágenes/PDF para Vision AI:</label>
+      <div
+        className="file-input-container"
+        style={{
+          margin: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+        }}>
+          <label htmlFor="fileInput">Sube imágenes/PDF para Vision AI:</label>
         {selectedFiles.length === 0 ? (
           <input
             id="fileInput"
@@ -364,13 +416,13 @@ const handleCopyExample = () => {
             ))}
           </div>
         )}
-      </div>
+      
 
       {/* Botón Generar */}
-      <button onClick={handleGenerate} disabled={isLoading}>
+      <button onClick={handleGenerate} style={{ margin: '20px' }} disabled={isLoading}>
         {isLoading ? 'Generando...' : 'Generar Contenido'}
       </button>
-
+      </div>
       {/* Opciones de descarga (PDF/CSV/Excel) */}
       {aiResponse && (
         <div className={`download-container ${showDownloadOptions ? 'expanded' : ''}`}>
@@ -534,7 +586,7 @@ const handleCopyExample = () => {
 
       {/* — Feature Importance Bar Chart — */}
       <div style={{ width: '100%', height: 350, margin: '2rem 0' }}>
-        <h2 style={{ textAlign: 'center' }}>Importancia de Características (Top 6)</h2>
+        <h2 style={{ textAlign: 'center' }}>Importancia y jerarquia de Características (Top 6) del modelo predictivo</h2>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={staticFeatureData}
