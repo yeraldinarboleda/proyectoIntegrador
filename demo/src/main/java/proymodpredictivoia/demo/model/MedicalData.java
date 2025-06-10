@@ -16,6 +16,9 @@ public class MedicalData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "document_id", nullable = false)
+    private String documentId;
+
     @Column(name = "waist_circumference", nullable = false)
     private Double waistCircumference;
 
@@ -59,6 +62,5 @@ public class MedicalData {
     @Column(name = "no_of_major_vessels")
     private Integer noOfMajorVessels;
 
-    @OneToOne(mappedBy = "medicalData")
-    private PatientRecord patientRecord;
+    
 }

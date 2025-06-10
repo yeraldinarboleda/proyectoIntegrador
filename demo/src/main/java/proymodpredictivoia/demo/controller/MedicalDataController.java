@@ -1,7 +1,10 @@
 package proymodpredictivoia.demo.controller;
 
+
 import proymodpredictivoia.demo.model.MedicalData;
 import proymodpredictivoia.demo.repository.MedicalDataRepository;
+
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +22,9 @@ public class MedicalDataController {
 
     // ✅ CREATE
     @PostMapping
-    public MedicalData saveMedicalData(@RequestBody MedicalData medicalData) {
-        return medicalDataRepository.save(medicalData);
-    }
+public MedicalData saveMedicalData(@RequestBody MedicalData medicalData) {
+    return medicalDataRepository.save(medicalData);
+}
 
     // ✅ READ - Todos
     @GetMapping
@@ -72,5 +75,10 @@ public class MedicalDataController {
         }
         medicalDataRepository.deleteById(id);
         return ResponseEntity.ok("Datos médicos eliminados correctamente.");
+    }
+
+    @GetMapping("/by-document/{documentId}")
+    public List<MedicalData> getByDocumentId(@PathVariable String documentId) {
+        return medicalDataRepository.findByDocumentId(documentId);
     }
 }

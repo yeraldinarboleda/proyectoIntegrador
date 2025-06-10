@@ -1,8 +1,12 @@
 package proymodpredictivoia.demo.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+
 import proymodpredictivoia.demo.model.LabResults;
 import proymodpredictivoia.demo.repository.LabResultsRepository;
 
@@ -46,4 +50,9 @@ public class LabResultsController {
         }
         return ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/by-document/{documentId}")
+    public List<LabResults> getByDocumentId(@PathVariable String documentId) {
+        return labResultsRepository.findByDocumentId(documentId);
+}
 }
