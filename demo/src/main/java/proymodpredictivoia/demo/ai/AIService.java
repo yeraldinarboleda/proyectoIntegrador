@@ -506,25 +506,30 @@ public class AIService {
 
         
         // 11) Número de vasos principales
-        m = Pattern.compile("(?i)\\b(\\d|uno|dos|tres)\\s+(vasos principales|number of major vessels|major vessels|número de vasos principales|noofmajorvessels|numMajorVessels)")
+        m = Pattern.compile("(?i)\\b(\\d|uno|un|dos|tres|1|2|3)\\s+(vaso principal|vasos principales|number of major vessels|major vessels|número de vasos principales|noofmajorvessels|numMajorVessels)")
                 .matcher(text);
 
         if (m.find()) {
             String g = m.group(1).toLowerCase();
             int v = switch (g) {
-                case "uno"  -> 1;
-                case "dos"  -> 2;
-                case "tres" -> 3;
+                case "un", "uno", "1" -> 1; // "un" o "uno" se interpreta como 1
+                case "dos", "2"  -> 2;
+                case "tres", "3" -> 3;
                 default     -> Integer.parseInt(g);
             };
             data.put("noofmajorvessels", v);
         }
 
         // 12) Azúcar en ayunas (fastingbloodsugar)
-        m = Pattern.compile("(?i)(?:Az[uú]car en (?:sangre )?en ayunas|Az[uú]car en ayunas|fasting blood sugar|fastingbloodsugar)\\s*[:\\-]?\\s*([01])")
+        m = Pattern.compile("(?i)(?:Az[uú]car en (?:sangre )?en ayunas|Az[uú]car en ayunas|fasting blood sugar|fastingbloodsugar)\\s*[:\\-]?\\s*([01]|s[ií]|no)")
         .matcher(text);
         if (m.find()) {
-            data.put("fastingbloodsugar", Integer.parseInt(m.group(1)));
+            String val = m.group(1).toLowerCase();
+            if (val.equals("1") || val.startsWith("s")) {
+                data.put("fastingbloodsugar", 1);
+            } else {
+                data.put("fastingbloodsugar", 0);
+            }
         } else if (text.toLowerCase().contains("glucemia en ayunas")) {
             data.put("fastingbloodsugar", 1);
         }
