@@ -33,9 +33,6 @@ public class PersonalData {
 
     private String gmail;
 
-    @OneToOne(mappedBy = "personalData")
-    private PatientRecord patientRecord;
-
 
     
 }

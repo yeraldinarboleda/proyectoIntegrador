@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './styles/CardioResultsForm.css';
 import { uploadCardioResults } from "../services/api";
 
-const CardioResultsForm = () => {
+const CardioResultsForm = ({ documentId }) => {
   const [electroFiles, setElectroFiles] = useState([]);
   const [ecoFiles, setEcoFiles] = useState([]);
   const [formFields, setFormFields] = useState({
@@ -30,6 +30,8 @@ const CardioResultsForm = () => {
 
     try {
       const formData = new FormData();
+      
+      formData.append('documentId', documentId);
 
       electroFiles.forEach(file => formData.append('electrocardiogramFiles', file));
       ecoFiles.forEach(file => formData.append('echocardiogramFiles', file));
