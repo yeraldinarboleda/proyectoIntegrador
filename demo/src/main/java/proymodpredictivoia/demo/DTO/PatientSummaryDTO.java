@@ -18,6 +18,16 @@ public class PatientSummaryDTO {
         this.personalData = personalData;
     }
 
+    private int edad;
+
+    public int getEdad() {
+        return edad;
+    }
+
+    public void setEdad(int edad) {
+        this.edad = edad;
+    }
+
     public List<MedicalData> getMedicalData() {
         return medicalData;
     }
