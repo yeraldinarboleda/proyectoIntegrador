@@ -52,8 +52,8 @@ function AIComponent() {
       // Formatea la información del paciente en texto plano
       let text = '';
       if (data.personalData) {
-        text += `Nombre: ${data.personalData.name || ''}\n`;
-        text += `Edad: ${data.personalData.age || ''}\n`;
+        text += `Nombre:  ${data.personalData.firstName || ''} ${data.personalData.lastName || ''}\n`;
+        text += `Edad:  ${data.edad || ''}\n`;
         text += `Sexo: ${data.personalData.gender || ''}\n`;
       }
       if (data.medicalData && data.medicalData.length > 0) {
