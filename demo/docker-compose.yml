@@ -11,19 +11,4 @@ services:
       - "5432:5432"
     volumes:
       - postgres_storage:/var/lib/postgresql/data
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: springboot_app
-    restart: always
-    environment:
-      DB_USER: postgres
-      DB_PASS: postgres
-    ports:
-      - "8081:8081"
-    depends_on:
-      - db
-volumes:
-  postgres_storage:
-    driver: local
+ 

@@ -108,8 +108,8 @@ public void testDeleteCardioResult() throws Exception {
 
 @Test
 public void testUploadCardioResults() throws Exception {
-    MockMultipartFile electroFile = new MockMultipartFile("electroFiles", "electro.csv", "text/csv", "data1".getBytes());
-    MockMultipartFile ecoFile = new MockMultipartFile("ecoFiles", "eco.csv", "text/csv", "data2".getBytes());
+    MockMultipartFile electroFile = new MockMultipartFile("electrocardiogramFiles", "electro.csv", "text/csv", "data1".getBytes());
+    MockMultipartFile ecoFile = new MockMultipartFile("echocardiogramFiles", "eco.csv", "text/csv", "data2".getBytes());
 
     CardioResults saved = getSampleCardioResults();
     when(cardioResultsRepository.save(any(CardioResults.class))).thenReturn(saved);
@@ -117,10 +117,15 @@ public void testUploadCardioResults() throws Exception {
     mockMvc.perform(multipart("/api/cardio-results/upload")
             .file(electroFile)
             .file(ecoFile)
+            .param("documentId", "12345678") // obligatorio
+            .param("chestPainType", "1")
+            .param("restingECG", "0")
+            .param("exerciseAngina", "1")
             .with(user("admin").roles("ADMIN"))
             .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(1L));
 }
+
 
 }
