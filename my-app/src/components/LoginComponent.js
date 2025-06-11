@@ -3,6 +3,7 @@ import { Heart, Activity, Lock, User, Eye, EyeOff } from "lucide-react";
 import "./styles/Login.css";
 
 import { useNavigate } from "react-router-dom";
+import { useAuth } from './AuthContext';
 
 const LoginComponent = () => {
   const [formData, setFormData] = useState({ documentId: "", password: "" });
@@ -11,8 +12,11 @@ const LoginComponent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const { login } = useAuth();
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 const navigate = useNavigate();
@@ -33,6 +37,8 @@ const navigate = useNavigate();
     if (!response.ok) {
       throw new Error("Credenciales inválidas");
     }
+
+    login();
 
     // Redirige al dashboard
     navigate("/dashboard");  // Cambia "/dashboard" por tu ruta real
