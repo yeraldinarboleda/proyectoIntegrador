@@ -1,8 +1,11 @@
 package proymodpredictivoia.demo.service;
 
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.time.Period;
 
+@Service
 public class PersonalDataService {
     
     public int calcularEdad(LocalDate birthDate) {

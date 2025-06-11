@@ -2,7 +2,7 @@ package proymodpredictivoia.demo.controller;
 
 import proymodpredictivoia.demo.DTO.PatientSummaryDTO;
 import proymodpredictivoia.demo.repository.*;
-
+import proymodpredictivoia.demo.service.PersonalDataService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -26,16 +26,27 @@ public class PatientSummaryController {
     @Autowired
     private RiskFactorsRepository riskFactorsRepo;
 
+    @Autowired
+    private PersonalDataService personalDataService;
+
     @GetMapping("/{documentId}")
-    public PatientSummaryDTO getPatientSummary(@PathVariable String documentId) {
-        PatientSummaryDTO summary = new PatientSummaryDTO();
+public PatientSummaryDTO getPatientSummary(@PathVariable String documentId) {
+    PatientSummaryDTO summary = new PatientSummaryDTO();
 
-        summary.setPersonalData(personalDataRepo.findByDocumentId(documentId).orElse(null));
-        summary.setMedicalData(medicalDataRepo.findByDocumentId(documentId));
-        summary.setLabResults(labResultsRepo.findByDocumentId(documentId));
-        summary.setCardioResults(cardioResultsRepo.findByDocumentId(documentId));
-        summary.setRiskFactors(riskFactorsRepo.findByDocumentId(documentId));
+    var personalData = personalDataRepo.findByDocumentId(documentId).orElse(null);
+    summary.setPersonalData(personalData);
 
-        return summary;
+    // Calcular y establecer la edad si hay fecha de nacimiento
+    if (personalData != null && personalData.getBirthDate() != null) {
+        int edad = personalDataService.calcularEdad(personalData.getBirthDate());
+        summary.setEdad(edad);
     }
+
+    summary.setMedicalData(medicalDataRepo.findByDocumentId(documentId));
+    summary.setLabResults(labResultsRepo.findByDocumentId(documentId));
+    summary.setCardioResults(cardioResultsRepo.findByDocumentId(documentId));
+    summary.setRiskFactors(riskFactorsRepo.findByDocumentId(documentId));
+
+    return summary;
+}
 }
