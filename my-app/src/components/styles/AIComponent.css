@@ -75,12 +75,16 @@
     font-size: 14px;
     font-family: Arial, sans-serif;
     color: white;
-    background-color: #007bff; /* Azul */
+    background-color: #007bff;
     border: none;
-    border-radius: 8px; /* Bordes redondeados */
+    border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 10px;
+    width: auto;         /* <-- Asegura que no ocupe todo el ancho */
+    min-width: 120px;    /* <-- Opcional: tamaño mínimo */
+    max-width: 200px;    /* <-- Opcional: tamaño máximo */
+    box-sizing: border-box;
 }
 
 .file-input:hover {
