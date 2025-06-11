@@ -1,3 +1,4 @@
+# Primero se tiene que iniciar el docker  
 # iniciar backend
 cd demo
 ./mvnw clean install
