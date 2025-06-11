@@ -2,12 +2,17 @@ package proymodpredictivoia.demo;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
+
 import proymodpredictivoia.demo.ai.AIService;
 
 import java.io.File;
 import java.io.FileInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+
+@AutoConfigureMockMvc(addFilters = false)
+
 
 public class AIServiceSimpleTest {
 

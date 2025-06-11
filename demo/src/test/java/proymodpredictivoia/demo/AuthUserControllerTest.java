@@ -4,14 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import proymodpredictivoia.demo.controller.AuthUserController;
 import proymodpredictivoia.demo.model.AuthUser;
 import proymodpredictivoia.demo.repository.AuthUserRepository;
+import proymodpredictivoia.demo.service.LoginLogService;
 
 import java.util.*;
 
@@ -22,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(AuthUserController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class AuthUserControllerTest {
 
     @Autowired
@@ -29,6 +33,12 @@ public class AuthUserControllerTest {
 
     @MockBean
     private AuthUserRepository authUserRepository;
+
+    @MockBean
+    private PasswordEncoder passwordEncoder;
+
+    @MockBean
+    private LoginLogService loginLogService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -51,8 +61,8 @@ public class AuthUserControllerTest {
         when(authUserRepository.save(any(AuthUser.class))).thenReturn(user);
 
         mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(user)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Usuario registrado exitosamente."));
     }
@@ -64,8 +74,8 @@ public class AuthUserControllerTest {
         when(authUserRepository.existsByDocumentId(user.getDocumentId())).thenReturn(true);
 
         mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(user)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("El usuario ya existe con ese documentId."));
     }
@@ -79,10 +89,11 @@ public class AuthUserControllerTest {
         );
 
         when(authUserRepository.findByDocumentId("12345678")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("clave123", "clave123")).thenReturn(true);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Login exitoso"));
     }
@@ -97,8 +108,8 @@ public class AuthUserControllerTest {
         when(authUserRepository.findByDocumentId("99999999")).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string("Usuario no encontrado."));
     }
@@ -112,10 +123,11 @@ public class AuthUserControllerTest {
         );
 
         when(authUserRepository.findByDocumentId("12345678")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("claveIncorrecta", "clave123")).thenReturn(false);
 
         mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string("Contraseña incorrecta."));
     }
@@ -158,8 +170,8 @@ public class AuthUserControllerTest {
         when(authUserRepository.save(any(AuthUser.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/auth/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updated)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Usuario actualizado exitosamente."));
     }
@@ -171,8 +183,8 @@ public class AuthUserControllerTest {
         when(authUserRepository.findById(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/auth/99")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updated)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
                 .andExpect(status().isNotFound());
     }
 
