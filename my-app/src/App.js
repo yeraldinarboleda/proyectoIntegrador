@@ -15,7 +15,13 @@ function App() {
     <Router basename="/">
       <div className="App">
         <header className="App-header">
-          <h1>AI Content Generator</h1>
+          <Link to="/" style={{ display: 'inline-block' }}>
+            <img
+              src="/logo.jpeg"
+              alt="CardioHealth AI Logo"
+              style={{ width: 200, height: 200, objectFit: 'contain', marginBottom: 10, cursor: 'pointer' }}
+            />
+          </Link>
           <nav style={{ display: 'flex', justifyContent: 'space-around', width: '50%' }}>
             <Link to="/">Login</Link>
             <Link to="/ia">IA</Link>
